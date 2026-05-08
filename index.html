@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICEBERG · 學習歷程</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4ff;color:#0A1F6B;padding:16px 16px 0;}
+
+/* Brand colors */
+:root{
+  --blue-dark:#0A1F6B;
+  --blue-main:#1565E0;
+  --blue-light:#D6E6FF;
+  --white:#FFFFFF;
+}
+
+.layout{display:grid;grid-template-columns:220px 1fr;gap:12px;align-items:start;}
+.left{display:flex;flex-direction:column;gap:12px;position:sticky;top:16px;}
+.right{display:flex;flex-direction:column;gap:12px;}
+.card{background:var(--white);border-radius:12px;padding:14px 16px;border:.5px solid rgba(21,101,224,.15);}
+.sec-label{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#6B8ACB;margin-bottom:10px;}
+
+/* Logo card */
+.logo-card{background:var(--white);border-radius:12px;padding:14px 16px 10px;border:.5px solid rgba(21,101,224,.15);}
+.logo-icon svg{width:32px;height:32px;}
+.logo-text{font-size:16px;font-weight:700;color:var(--white);letter-spacing:.12em;}
+.logo-sub{font-size:10px;color:rgba(255,255,255,.6);margin-top:2px;letter-spacing:.05em;}
+
+/* Calendar */
+.cal-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.cal-month{font-size:13px;font-weight:500;color:var(--blue-dark);}
+.cal-nav-btn{background:none;border:.5px solid var(--blue-light);border-radius:6px;padding:2px 8px;font-size:12px;color:var(--blue-main);cursor:pointer;}
+.cal-nav-btn:hover{background:var(--blue-light);}
+.dow-row{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
+.dow{font-size:10px;color:#6B8ACB;text-align:center;padding:2px 0;}
+.day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.day{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#6B8ACB;cursor:pointer;position:relative;border:.5px solid transparent;}
+.day:hover{background:var(--blue-light);}
+.day.has-data{color:var(--blue-dark);}
+.day.has-data::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--blue-main);}
+.day.selected{border-color:var(--blue-main);background:var(--blue-light);}
+.day.today-mark{font-weight:600;color:var(--blue-main);}
+.day.empty{cursor:default;}
+
+/* Streak */
+.streak-row{display:flex;align-items:center;gap:8px;}
+.streak-num{font-size:26px;font-weight:600;color:var(--blue-dark);line-height:1;}
+.streak-info{flex:1;}
+.streak-sub{font-size:11px;color:#6B8ACB;margin-top:2px;}
+.streak-badge{font-size:10px;padding:3px 8px;border-radius:99px;background:var(--blue-light);color:var(--blue-main);white-space:nowrap;font-weight:500;}
+
+/* Heatmap */
+.heatmap-inner{display:flex;flex-wrap:wrap;gap:3px;}
+.hcell{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.hc0{background:#E8EEFA;}
+.hc1{background:#93B4F0;}
+.hc2{background:#1565E0;}
+.hc3{background:#0A1F6B;}
+.heat-legend{display:flex;align-items:center;gap:4px;margin-top:8px;justify-content:flex-end;}
+.heat-legend span{font-size:10px;color:#6B8ACB;}
+
+/* Snapshot */
+.snap-item{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:.5px solid var(--blue-light);}
+.snap-item:last-child{border-bottom:none;}
+.snap-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;}
+.si-v{background:#DDEEFF;color:var(--blue-main);}
+.si-a{background:#EEF4FF;color:var(--blue-dark);}
+.si-e{background:#E8F0FF;color:#2B4DB0;}
+.snap-body{flex:1;}
+.snap-type{font-size:10px;color:#6B8ACB;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+.snap-title{font-size:12px;color:var(--blue-dark);line-height:1.4;}
+.snap-meta{font-size:11px;color:#6B8ACB;margin-top:1px;}
+.date-label{font-size:12px;color:#6B8ACB;margin-bottom:8px;}
+.empty-state{font-size:12px;color:#6B8ACB;padding:16px 0;text-align:center;}
+
+/* Three key learnings */
+.keys-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.key-card{background:var(--blue-light);border-radius:8px;padding:12px;border:.5px solid rgba(21,101,224,.2);}
+.key-num{font-size:10px;font-weight:600;color:var(--blue-main);margin-bottom:6px;letter-spacing:.05em;}
+.key-text{font-size:12px;color:var(--blue-dark);line-height:1.6;}
+
+/* Quote */
+.quote-wrap{text-align:center;padding:6px 20px;}
+.quote-mark{font-size:26px;color:var(--blue-main);line-height:1;margin-bottom:4px;}
+.quote-text{font-size:14px;color:#2B4DB0;font-style:italic;line-height:1.7;}
+.empty-sm{font-size:12px;color:#6B8ACB;text-align:center;padding:8px 0;}
+
+/* Footer */
+.footer{margin-top:20px;padding:20px 0 16px;border-top:.5px solid var(--blue-light);display:flex;align-items:center;justify-content:center;gap:10px;}
+.footer-logo{display:flex;align-items:center;gap:7px;}
+.footer-text{font-size:11px;color:#6B8ACB;letter-spacing:.05em;}
+.footer-brand{font-size:12px;font-weight:700;color:var(--blue-dark);letter-spacing:.12em;}
+.footer-copy{font-size:11px;color:#93B4F0;}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- LEFT -->
+  <div class="left">
+
+    <!-- Logo -->
+    <div class="logo-card" style="background:transparent;border-radius:12px;padding:4px 16px;border:none;display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <img src="assets/logo/logo.svg" alt="ICEBERG" style="width:60%;height:auto;display:block;margin:0 auto;">
+    </div>
+
+    <!-- Calendar -->
+    <div class="card">
+      <div class="cal-title-row">
+        <span class="cal-month" id="cal-month"></span>
+        <div style="display:flex;gap:4px;">
+          <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+          <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+        </div>
+      </div>
+      <div class="dow-row" id="dow-row"></div>
+      <div class="day-grid" id="day-grid"></div>
+    </div>
+
+    <!-- Streak -->
+    <div class="card">
+      <div class="streak-row">
+        <div style="font-size:20px;">🔥</div>
+        <div class="streak-info">
+          <div style="display:flex;align-items:baseline;gap:4px;">
+            <span class="streak-num">6</span>
+            <span style="font-size:12px;color:#6B8ACB;">天連續</span>
+          </div>
+          <div class="streak-sub">最長紀錄：6 天</div>
+        </div>
+        <div class="streak-badge">今日 ✓</div>
+      </div>
+    </div>
+
+    <!-- Heatmap -->
+    <div class="card">
+      <div class="sec-label">近 90 天</div>
+      <div class="heatmap-inner" id="heatmap"></div>
+      <div class="heat-legend">
+        <span>少</span>
+        <div class="hcell hc0"></div>
+        <div class="hcell hc1"></div>
+        <div class="hcell hc2"></div>
+        <div class="hcell hc3"></div>
+        <span>多</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+
+    <div class="card">
+      <div class="sec-label">學習快照</div>
+      <div class="date-label" id="snap-date"></div>
+      <div id="snap-panel"></div>
+    </div>
+
+    <div class="card">
+      <div class="sec-label">今日三大重點 <span id="keys-date" style="font-weight:400;text-transform:none;letter-spacing:0;color:#6B8ACB;font-size:11px;"></span></div>
+      <div class="keys-grid" id="keys-panel"></div>
+    </div>
+
+    <div class="card">
+      <div class="sec-label">今日金句</div>
+      <div id="quote-panel"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <div class="footer-logo">
+    <img src="assets/logo/文字logo.svg" alt="ICEBERG" style="height:24px;width:auto;object-fit:contain;">
+  </div>
+  <span class="footer-copy">· © 2026 ICEBERG · All rights reserved</span>
+</div>
+
+<script>
+const today=new Date();today.setHours(0,0,0,0);
+function fmtKey(d){return d.toISOString().slice(0,10);}
+function offsetDay(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+
+const DATA={
+  [fmtKey(offsetDay(today,0))]:{
+    video:{title:'AI 刻意練習的核心邏輯',note:'練習對象要是「解決真實問題的能力」，不是工具本身'},
+    articles:[{title:'Anthropic Core Views on AI Safety',src:'Anthropic Blog'}],
+    entertain:{title:'The Social Dilemma',type:'紀錄片'},
+    keys:['AI 技能中，Prompt Engineering 最適合刻意練習——反饋即時、有明確好壞標準，可以反覆測試優化。','「感覺 AI 能做什麼」的直覺無法靠刻意練習培養，只能靠大量真實使用累積，這是本質上不同的學習模式。','最值得練習的不是 AI 知識本身，而是「用 AI 解決特定領域問題的能力」——這才是穩定的競爭優勢。'],
+    quote:'把複雜的東西說簡單，是深度理解的證明。'
+  },
+  [fmtKey(offsetDay(today,-1))]:{
+    video:{title:'Claude Code 實作：第一個 Agent 工作流',note:'MCP 讓 Claude 可以連接外部工具'},
+    articles:[{title:'What is Model Context Protocol?',src:'Anthropic Docs'}],
+    keys:['MCP 是讓 Claude 連接外部工具和資料來源的標準協議，是 Agent 架構的核心基礎。','Agent 工作流的關鍵在於清楚定義每個步驟的輸入與輸出，讓每個環節有明確的責任邊界。','Claude Code 可以直接讀取和修改本地檔案，讓它成為真正的開發夥伴，而不只是問答工具。'],
+    quote:'每天一小步，方向對了就夠了。'
+  },
+  [fmtKey(offsetDay(today,-2))]:{
+    video:{title:'n8n 入門：第一個自動化工作流',note:'Webhook 是讓不同工具互相溝通的橋樑'},
+    articles:[{title:'台灣數位治理在 IGF 的角色',src:'數位部報告'},{title:'Automating knowledge work with AI',src:'MIT Technology Review'}],
+    entertain:{title:'Halt and Catch Fire S1',type:'影集'},
+    keys:['n8n 的 Webhook 節點是自動化流程的入口，任何外部服務都可以透過 HTTP 請求觸發工作流。','台灣在 IGF 的參與以技術議題為主，在數位主權和跨境資料流通的立場上有獨特地緣政治考量。','知識工作自動化的真正價值不在省時間，而在讓人專注判斷和創意，把重複性工作交給系統。'],
+    quote:'系統的價值，在於它讓你不需要每次都重新思考。'
+  },
+  [fmtKey(offsetDay(today,-3))]:{
+    video:{title:'Prompt Engineering 核心原則',note:'給 AI 的指令要像給聰明但沒背景的人說明'},
+    keys:['Prompt 的品質決定於你對任務的理解深度，而不是你對 AI 的熟悉程度——清楚定義問題比技巧更重要。','Few-shot prompting 透過提供範例讓模型理解輸出格式，比直接描述格式通常更有效。','System prompt 設定 AI 的角色和約束，User prompt 才是具體任務——兩者分工清楚效果最好。'],
+    quote:'System prompt 是你和 AI 之間的契約。'
+  },
+  [fmtKey(offsetDay(today,-4))]:{
+    articles:[{title:'The Anatomy of an LLM',src:'3Blue1Brown'},{title:'Co-Intelligence',src:'書摘'}],
+    entertain:{title:'Anthropic Alignment Podcast ep.12',type:'Podcast'},
+    keys:['LLM 的核心機制是預測下一個 token 的機率分布，這個簡單目標產生了令人驚訝的語言理解能力。','Ethan Mollick 提出「always invite AI to the table」——先試著用 AI，再決定它適不適合這個任務。','AI Alignment 的根本挑戰：如何確保隨著能力提升，AI 行為仍符合人類真實意圖而非字面指令。'],
+    quote:'能力越強，對齊的難度越高，對齊的重要性也越高。'
+  },
+  [fmtKey(offsetDay(today,-5))]:{
+    video:{title:'第一天：為什麼我要開始這段旅程',note:'智庫的速度太慢，我想用 AI 讓更多人看到洞察'},
+    keys:['智庫的分析深度有價值，但傳播速度跟不上政策變化的節奏——AI 可以改變這個方程式。','「讓複雜的東西被更多人理解」是我的核心驅動力，這個使命比任何職稱或機構都更持久。','記錄這段旅程本身就是作品——過程的透明度比結果更能建立真實的信任。'],
+    quote:'開始永遠比完美更重要。'
+  },
+};
+
+let viewMonth=new Date(today.getFullYear(),today.getMonth(),1);
+let selectedDate=new Date(today);
+
+function renderCalendar(){
+  const y=viewMonth.getFullYear(),m=viewMonth.getMonth();
+  const mNames=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  document.getElementById('cal-month').textContent=y+'年'+mNames[m];
+  document.getElementById('dow-row').innerHTML=['日','一','二','三','四','五','六'].map(d=>`<div class="dow">${d}</div>`).join('');
+  const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
+  let html='';
+  for(let i=0;i<first;i++)html+=`<div class="day empty"></div>`;
+  for(let d=1;d<=days;d++){
+    const dt=new Date(y,m,d),key=fmtKey(dt);
+    const hasData=!!DATA[key],isSel=fmtKey(dt)===fmtKey(selectedDate),isTod=fmtKey(dt)===fmtKey(today);
+    html+=`<div class="day${hasData?' has-data':''}${isSel?' selected':''}${isTod?' today-mark':''}" onclick="selectDay(${y},${m},${d})">${d}</div>`;
+  }
+  document.getElementById('day-grid').innerHTML=html;
+}
+
+function selectDay(y,m,d){
+  selectedDate=new Date(y,m,d);
+  renderCalendar();
+  renderRight();
+}
+
+function changeMonth(dir){viewMonth.setMonth(viewMonth.getMonth()+dir);renderCalendar();}
+
+function renderRight(){
+  const key=fmtKey(selectedDate),data=DATA[key];
+  const isToday=key===fmtKey(today);
+  const mo=selectedDate.getMonth()+1,d=selectedDate.getDate();
+  const dateStr=`${mo}月${d}日${isToday?' · 今天':''}`;
+
+  document.getElementById('snap-date').textContent=dateStr;
+  if(!data){
+    document.getElementById('snap-panel').innerHTML=`<div class="empty-state">這天還沒有記錄</div>`;
+    document.getElementById('keys-panel').innerHTML=`<div class="empty-state" style="grid-column:1/-1;">這天還沒有學習重點</div>`;
+    document.getElementById('quote-panel').innerHTML=`<div class="empty-sm">這天沒有金句記錄</div>`;
+    document.getElementById('keys-date').textContent=dateStr;
+    return;
+  }
+
+  let snapHtml='';
+  if(data.video)snapHtml+=`<div class="snap-item"><div class="snap-icon si-v">▶</div><div class="snap-body"><div class="snap-type">學習影片</div><div class="snap-title">${data.video.title}</div><div class="snap-meta">${data.video.note}</div></div></div>`;
+  (data.articles||[]).forEach(a=>{snapHtml+=`<div class="snap-item"><div class="snap-icon si-a">◎</div><div class="snap-body"><div class="snap-type">文章／閱讀</div><div class="snap-title">${a.title}</div><div class="snap-meta">${a.src}</div></div></div>`;});
+  if(data.entertain)snapHtml+=`<div class="snap-item"><div class="snap-icon si-e">◈</div><div class="snap-body"><div class="snap-type">${data.entertain.type}</div><div class="snap-title">${data.entertain.title}</div></div></div>`;
+  document.getElementById('snap-panel').innerHTML=snapHtml||`<div class="empty-state">這天還沒有記錄</div>`;
+
+  document.getElementById('keys-date').textContent=dateStr;
+  document.getElementById('keys-panel').innerHTML=data.keys
+    ? data.keys.map((k,i)=>`<div class="key-card"><div class="key-num">重點 ${i+1}</div><div class="key-text">${k}</div></div>`).join('')
+    : `<div class="empty-state" style="grid-column:1/-1;">這天還沒有學習重點</div>`;
+
+  document.getElementById('quote-panel').innerHTML=data.quote
+    ? `<div class="quote-wrap"><div class="quote-mark">"</div><div class="quote-text">${data.quote}</div></div>`
+    : `<div class="empty-sm">這天沒有金句記錄</div>`;
+}
+
+function renderHeatmap(){
+  let html='';
+  for(let i=89;i>=0;i--){
+    const d=offsetDay(today,-i),key=fmtKey(d);
+    const has=!!DATA[key],lvl=has?(i<2?3:i<4?2:1):0;
+    html+=`<div class="hcell hc${lvl}" title="${key}"></div>`;
+  }
+  document.getElementById('heatmap').innerHTML=html;
+}
+
+renderCalendar();
+renderRight();
+renderHeatmap();
+</script>
+</body>
+</html>
