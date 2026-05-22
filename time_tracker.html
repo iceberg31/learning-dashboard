@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>學習時間記錄</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface2: #242424;
+  --border: #2e2e2e;
+  --text: #f0ede8;
+  --text-dim: #7a7670;
+  --text-mid: #b0ada8;
+  --accent: #e8d5a3;
+  --accent-dim: #a89a72;
+  --danger: #e07060;
+  --success: #7ec88a;
+  --faith: #a78bfa;
+  --growth: #60a5fa;
+  --work: #f59e0b;
+  --family: #f472b6;
+  --health: #34d399;
+  --finance: #fbbf24;
+  --entertainment: #fb923c;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 0 0 120px;
+  overflow-x: hidden;
+}
+
+/* Header */
+.header {
+  padding: 52px 24px 20px;
+  position: relative;
+}
+.header-date {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.header-title {
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.header-title span {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* Timer Block */
+.timer-block {
+  margin: 0 16px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.timer-block::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.timer-block.running::before { opacity: 1; }
+
+.timer-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 12px;
+}
+.timer-display {
+  font-family: 'DM Mono', monospace;
+  font-size: 52px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+  transition: color 0.3s;
+}
+.timer-block.running .timer-display { color: var(--accent); }
+
+.timer-subject {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+  min-height: 18px;
+  transition: color 0.3s;
+}
+.timer-block.running .timer-subject { color: var(--text-mid); }
+
+.timer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.timer-actions.single { grid-template-columns: 1fr; }
+
+.btn {
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-start {
+  background: var(--accent);
+  color: #0f0f0f;
+}
+.btn-stop {
+  background: var(--danger);
+  color: #fff;
+}
+.btn-pause {
+  background: var(--surface2);
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+}
+.btn-cancel {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+/* Section */
+.section {
+  margin: 0 16px 16px;
+}
+.section-title {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+/* Area Grid */
+.area-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.area-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.area-card:active { transform: scale(0.97); }
+.area-card.selected {
+  border-color: var(--accent);
+  background: #1e1c16;
+}
+.area-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.area-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-mid);
+}
+.area-card.selected .area-name { color: var(--accent); }
+
+/* Resource Type */
+.type-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.type-row::-webkit-scrollbar { display: none; }
+.type-chip {
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.type-chip:active { transform: scale(0.97); }
+.type-chip.selected {
+  background: var(--accent);
+  color: #0f0f0f;
+  border-color: var(--accent);
+  font-weight: 500;
+}
+
+/* Resource Search */
+.search-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.15s;
+}
+.search-box:focus-within { border-color: var(--accent-dim); }
+.search-icon { color: var(--text-dim); font-size: 16px; flex-shrink: 0; }
+.search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+}
+.search-input::placeholder { color: var(--text-dim); }
+
+.resource-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.resource-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.resource-item:active { transform: scale(0.98); }
+.resource-item.selected { border-color: var(--accent); }
+.resource-name { font-size: 14px; color: var(--text-mid); }
+.resource-item.selected .resource-name { color: var(--accent); }
+.resource-meta { font-size: 11px; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+
+.create-new {
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+.create-new:active { transform: scale(0.98); }
+.create-new-icon { color: var(--accent-dim); font-size: 16px; }
+.create-new-text { font-size: 13px; color: var(--text-dim); }
+.create-new-title { color: var(--accent-dim); font-weight: 500; }
+
+/* Today Log */
+.log-list { display: flex; flex-direction: column; gap: 8px; }
+.log-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.log-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.log-info { flex: 1; min-width: 0; }
+.log-name {
+  font-size: 13px;
+  color: var(--text-mid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.log-area { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.log-time {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--accent-dim);
+  flex-shrink: 0;
+}
+
+/* Empty */
+.empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+/* Status */
+.status-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 10px 20px;
+  font-size: 12px;
+  color: var(--text-mid);
+  white-space: nowrap;
+  display: none;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.status-bar.show { display: block; }
+.status-bar.success { color: var(--success); border-color: var(--success); }
+.status-bar.error { color: var(--danger); border-color: var(--danger); }
+
+/* Loading spinner */
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Slide panel */
+.panel {
+  position: fixed;
+  bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 24px 24px 0 0;
+  padding: 8px 0 48px;
+  z-index: 200;
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  transform: translateX(-50%) translateY(100%);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.panel.open { transform: translateX(-50%) translateY(0); }
+.panel-handle {
+  width: 36px; height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+.panel-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 0 24px;
+  margin-bottom: 20px;
+}
+.panel-content { padding: 0 16px; }
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 199;
+  display: none;
+  backdrop-filter: blur(2px);
+}
+.panel-overlay.show { display: block; }
+
+/* Heatmap Grid */
+.heatmap-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.hm-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hm-legend-row span:not(.hm-dot) {
+  margin-right: 4px;
+}
+.hm-dot {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+.hm-learning      { background: var(--accent); }
+.hm-faith         { background: var(--faith); }
+.hm-work          { background: var(--work); }
+.hm-family        { background: var(--family); }
+.hm-entertainment { background: var(--entertainment); }
+.hm-other         { background: var(--text-dim); }
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 4px;
+}
+.heatmap-plan {
+  opacity: 0.3;
+}
+.hm-cell {
+  border-radius: 8px;
+  min-height: 44px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.hm-cell-empty {
+  background: var(--surface);
+}
+.hm-cell-time {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: rgba(255,255,255,0.5);
+  padding: 3px 5px;
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  z-index: 2;
+  line-height: 1;
+}
+.hm-cell-empty .hm-cell-time {
+  color: var(--text-dim);
+}
+.hm-bar-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: row;
+}
+.hm-bar {
+  height: 100%;
+  flex-shrink: 0;
+}
+.hm-bar-learning      { background: var(--accent);        opacity: 1;   }
+.hm-bar-faith         { background: var(--faith);         opacity: 0.9; }
+.hm-bar-work          { background: var(--work);          opacity: 0.9; }
+.hm-bar-family        { background: var(--family);        opacity: 0.9; }
+.hm-bar-entertainment { background: var(--entertainment); opacity: 0.8; }
+.hm-bar-other         { background: var(--text-dim);      opacity: 0.6; }
+.hm-bar-health        { background: var(--health);        opacity: 0.9; }
+.hm-cell { cursor: pointer; transition: transform 0.1s; }
+.hm-cell:active { transform: scale(0.93); }
+
+.cell-popup {
+  position: absolute;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  z-index: 500;
+  min-width: 160px;
+  max-width: 220px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: popIn 0.15s ease;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.cell-popup-time {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--accent-dim);
+  margin-bottom: 8px;
+}
+.cell-popup-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.cell-popup-row:last-child { margin-bottom: 0; }
+.cell-popup-dot {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.cell-popup-name {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+.cell-popup-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+
+/* Total bar */
+.total-bar {
+  margin: 0 16px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.total-label { font-size: 12px; color: var(--text-dim); }
+.total-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--accent);
+}
+.lock-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 40px 32px;
+}
+.lock-icon { font-size: 40px; margin-bottom: 24px; }
+.lock-title {
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text);
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+.lock-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.lock-input {
+  width: 100%;
+  max-width: 280px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 16px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.1em;
+  text-align: center;
+  outline: none;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+.lock-input:focus { border-color: var(--accent-dim); }
+.lock-input.error { border-color: var(--danger); animation: shake 0.3s ease; }
+.lock-btn {
+  width: 100%;
+  max-width: 280px;
+  padding: 14px;
+  background: var(--accent);
+  color: #0f0f0f;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: 'Noto Sans TC', sans-serif;
+  cursor: pointer;
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+</style>
+</head>
+<body>
+
+<!-- 密碼鎖定畫面 -->
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-icon">⏱</div>
+  <div class="lock-title">時間記錄</div>
+  <div class="lock-sub">請輸入密碼以繼續</div>
+  <input class="lock-input" id="lock-input" type="password" placeholder="••••••"
+    onkeydown="if(event.key==='Enter') unlock()" autocomplete="current-password" />
+  <button class="lock-btn" onclick="unlock()">進入</button>
+</div>
+
+<div class="header">
+  <div class="header-date" id="header-date"></div>
+  <div class="header-title">時間<span>記錄</span></div>
+</div>
+
+<!-- Timer -->
+<div class="timer-block" id="timer-block">
+  <div class="timer-label">計時中</div>
+  <div class="timer-display" id="timer-display">00:00:00</div>
+  <div class="timer-subject" id="timer-subject">尚未開始</div>
+  <div class="timer-actions single" id="timer-actions">
+    <button class="btn btn-start" onclick="openPanel()">▶ 開始記錄</button>
+  </div>
+</div>
+
+<!-- Today total -->
+<div class="total-bar">
+  <div class="total-label">今日累積</div>
+  <div class="total-value" id="total-display">—</div>
+</div>
+
+<!-- Today log -->
+<div class="section">
+  <div class="section-title">今天的記錄</div>
+  <div class="log-list" id="log-list">
+    <div class="empty">今天還沒有記錄<br>按上方開始按鈕來記錄第一筆</div>
+  </div>
+</div>
+
+<!-- 24hr Grid -->
+<div class="section">
+  <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+    <span>今日時間軸</span>
+    <span style="font-size:10px;color:var(--text-dim)">每格 30 分鐘</span>
+  </div>
+  <div class="heatmap-legend">
+    <div class="hm-legend-row">
+      <span class="hm-dot hm-learning"></span><span>學習／個人成長</span>
+      <span class="hm-dot hm-faith"></span><span>信仰／服事</span>
+      <span class="hm-dot hm-work"></span><span>事業</span>
+      <span class="hm-dot hm-family"></span><span>家庭</span>
+    </div>
+    <div class="hm-legend-row">
+      <span class="hm-dot hm-entertainment"></span><span>樂趣</span>
+      <span class="hm-dot" style="background:var(--health)"></span><span>健康</span>
+      <span class="hm-dot hm-other"></span><span>其他</span>
+    </div>
+  </div>
+  <div class="heatmap-grid" id="time-grid"></div>
+  <!-- 預期（待接入） -->
+  <div class="section-title" style="margin-top:16px;display:flex;justify-content:space-between;">
+    <span>預期時間表</span>
+    <span style="font-size:10px;color:var(--text-dim)">待接入 Notion</span>
+  </div>
+  <div class="heatmap-grid heatmap-plan" id="time-grid-plan"></div>
+</div>
+
+<!-- Panel overlay -->
+<div class="panel-overlay" id="panel-overlay" onclick="closePanel()"></div>
+
+<!-- Slide-up panel -->
+<div class="panel" id="panel">
+  <div class="panel-handle"></div>
+  <div class="panel-title" id="panel-title">選擇目標領域</div>
+  <div class="panel-content" id="panel-content"></div>
+</div>
+
+<!-- Status bar -->
+<div class="status-bar" id="status-bar"></div>
+
+<script>
+// 密碼保護
+const PASS_HASH = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'; // 預設: password，上線前請改
+async function unlock() {
+  const val = document.getElementById('lock-input').value;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(val));
+  const hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  if (hash === PASS_HASH) {
+    sessionStorage.setItem('tt_auth', '1');
+    document.getElementById('lock-screen').style.display = 'none';
+    init();
+  } else {
+    const inp = document.getElementById('lock-input');
+    inp.classList.add('error');
+    inp.value = '';
+    setTimeout(() => inp.classList.remove('error'), 400);
+  }
+}
+// 已解鎖過（同一 session）直接進入
+if (sessionStorage.getItem('tt_auth') === '1') {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('lock-screen').style.display = 'none';
+    init();
+  });
+}
+const APP_KEY = 'andy-tt-2026'; // 跟 Worker 那邊一樣
+const DB_TIME = 'dd90240a-54a0-4d32-8662-d0350c178847';
+const DB_AREAS = '827dc059-8eb7-835d-b943-017940a39c71';
+const DB_BOOKS = '8d8dc059-8eb7-82a8-b123-81977030efc1';
+const DB_ARTICLES = '741dc059-8eb7-8203-991a-01f0d08220be';
+const DB_DIARY = '35adc059-8eb7-807b-afd6-d109b4ecf911';
+const DB_ENTERTAINMENT = 'c8ddc059-8eb7-8376-9779-01825448426b';
+const DB_SLEEP = 'e0a84b89-633b-47c9-951e-d0ad869f8260';
+const DB_DEVOTION = '531dc059-8eb7-8244-be6f-015485ee6935'; // 靈修日記
+const DB_PRAYER = '365dc059-8eb7-800d-8651-d5ebabbfe009';
+const DB_MINISTRY = '0b3dc059-8eb7-82cc-ba33-817fa044642d';
+const DB_TASKS = 'af9dc059-8eb7-825e-bb1d-01a7ba944ba9';
+
+const AREA_COLORS = {
+  '信仰': 'var(--faith)',
+  '事業': 'var(--work)',
+  '家庭': 'var(--family)',
+  '服事': 'var(--faith)',
+  '樂趣': 'var(--entertainment)',
+  '健康': 'var(--health)',
+  '學習': 'var(--growth)',
+  '個人成長': 'var(--growth)',
+};
+const AREA_IDS = {
+  '信仰': 'fc0dc059-8eb7-8393-b4b9-81c8af7ed3c7',
+  '事業': '1f1dc059-8eb7-8232-bc49-015375d71c47',
+  '家庭': '462dc059-8eb7-830b-beb1-016495c1f3bb',
+  '服事': '365dc059-8eb7-8051-be52-d57f57e6875e',
+  '樂趣': 'cb3dc059-8eb7-827b-a35d-01b367491600',
+  '健康': 'ec6dc059-8eb7-8214-b7d2-8128d1a8dc3d',
+  '學習': '2addc059-8eb7-82ec-a957-81eae8693b25',
+  '個人成長': '2addc059-8eb7-82ec-a957-81eae8693b25',
+};
+
+// 各領域對應的子類型設定
+// db: 要 relation 的資料庫；null = 純記時不 relation
+const AREA_SUBTYPES = {
+  '信仰': [
+    { key: 'devotion',      label: '靈修', db: DB_DEVOTION,      titleField: 'Name',  isLearning: false },
+    { key: 'prayer',        label: '禱告', db: DB_PRAYER,        titleField: 'Name',  isLearning: false },
+    { key: 'bible',         label: '查經', db: DB_DEVOTION,      titleField: 'Name',  isLearning: false },
+    { key: 'other_faith',   label: '其他', db: null,             isLearning: false },
+  ],
+  '事業': [
+    { key: 'task',          label: '待辦任務', db: DB_TASKS,     titleField: 'Name',  isLearning: false },
+    { key: 'other_work',    label: '其他',     db: null,         isLearning: false },
+  ],
+  '家庭': [
+    { key: 'family_task',   label: '待辦任務', db: DB_TASKS,     titleField: 'Name',  isLearning: false },
+    { key: 'other_family',  label: '其他',     db: null,         isLearning: false },
+  ],
+  '服事': [
+    { key: 'ministry',      label: '服事項目', db: DB_MINISTRY,  titleField: 'Name',  isLearning: false },
+    { key: 'other_min',     label: '其他',     db: null,         isLearning: false },
+  ],
+  '樂趣': [
+    { key: 'fun',           label: '娛樂項目', db: DB_ENTERTAINMENT, titleField: 'Name', isLearning: false },
+    { key: 'other_fun',     label: '其他',     db: null,         isLearning: false },
+  ],
+  '健康': [
+    { key: 'health',        label: '純記時',   db: null,         isLearning: false },
+  ],
+  '學習': [
+    { key: 'book',          label: '書籍', db: DB_BOOKS,         titleField: 'Title', isLearning: true },
+    { key: 'article',       label: '文章', db: DB_ARTICLES,      titleField: 'Name',  isLearning: true },
+    { key: 'video',         label: '影音', db: DB_ARTICLES,      titleField: 'Name',  isLearning: true },
+    { key: 'other_learn',   label: '其他', db: null,             isLearning: true },
+  ],
+  '個人成長': [
+    { key: 'growth_task',   label: '待辦任務', db: DB_TASKS,     titleField: 'Name',  isLearning: false },
+    { key: 'other_growth',  label: '其他',     db: null,         isLearning: false },
+  ],
+};
+
+// State
+let state = {
+  running: false,
+  startTime: null,
+  intervalId: null,
+  area: null,
+  areaId: null,
+  subtype: null,   // 目前選擇的子類型 object
+  resource: null,
+  resourceId: null,
+  todayLogs: [],
+  sleepLog: null, // { bedtime, wakeup, minutes }
+  panelStep: 'area', // area | subtype | resource
+};
+
+// Init
+function init() {
+  const now = new Date();
+  document.getElementById('header-date').textContent =
+    now.toLocaleDateString('zh-TW', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+  loadTodayLogs();
+  loadSleepData();
+}
+
+// Timer
+function tick() {
+  if (!state.startTime) return;
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+  const h = String(Math.floor(elapsed / 3600)).padStart(2,'0');
+  const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2,'0');
+  const s = String(elapsed % 60).padStart(2,'0');
+  document.getElementById('timer-display').textContent = `${h}:${m}:${s}`;
+}
+
+function startTimer() {
+  state.running = true;
+  state.startTime = Date.now();
+  state.intervalId = setInterval(tick, 1000);
+  const block = document.getElementById('timer-block');
+  block.classList.add('running');
+  document.getElementById('timer-subject').textContent =
+    `${state.area} · ${state.resource || '其他'}`;
+  document.getElementById('timer-actions').innerHTML = `
+    <button class="btn btn-stop" onclick="stopTimer()">■ 結束</button>
+    <button class="btn btn-cancel" onclick="cancelTimer()">取消</button>
+  `;
+  document.getElementById('timer-actions').classList.remove('single');
+}
+
+async function stopTimer() {
+  if (!state.running) return;
+  clearInterval(state.intervalId);
+  const endTime = Date.now();
+  const minutes = Math.round((endTime - state.startTime) / 60000);
+  state.running = false;
+
+  showStatus('儲存中...', '');
+  try {
+    const newPageId = await saveToNotion(state.startTime, endTime, minutes);
+    const taipeiNow = new Date(new Date().getTime() + 8 * 3600 * 1000);
+    const today = taipeiNow.toISOString().split('T')[0];
+
+    // 信仰（靈修／查經）→ 把時間記錄 relation 進靈修日記的「時間記錄庫」
+    if (state.resourceId && (state.subtype?.key === 'devotion' || state.subtype?.key === 'bible')) {
+      const existing = (await notionFetch('GET', '/pages/' + state.resourceId))
+        .properties?.['時間記錄庫']?.relation || [];
+      const already = existing.some(r => r.id === newPageId);
+      if (!already) {
+        await notionFetch('PATCH', '/pages/' + state.resourceId, {
+          properties: { '時間記錄庫': { relation: [...existing, { id: newPageId }] } }
+        });
+      }
+      showStatus(`✓ 已記錄 ${formatMin(minutes)}，已同步到靈修日記`, 'success');
+
+    // 信仰（禱告）→ 把時間記錄 relation 進代禱資料庫的「時間記錄庫」
+    } else if (state.resourceId && state.subtype?.key === 'prayer') {
+      const existing = (await notionFetch('GET', '/pages/' + state.resourceId))
+        .properties?.['時間記錄庫']?.relation || [];
+      const already = existing.some(r => r.id === newPageId);
+      if (!already) {
+        await notionFetch('PATCH', '/pages/' + state.resourceId, {
+          properties: { '時間記錄庫': { relation: [...existing, { id: newPageId }] } }
+        });
+      }
+      showStatus(`✓ 已記錄 ${formatMin(minutes)}，已同步到代禱資料庫`, 'success');
+
+    // 樂趣 → 把時間記錄 relation 進娛樂資料庫的「時間記錄庫」
+    } else if (state.resourceId && state.subtype?.key === 'fun') {
+      const existing = (await notionFetch('GET', '/pages/' + state.resourceId))
+        .properties?.['時間記錄庫']?.relation || [];
+      const already = existing.some(r => r.id === newPageId);
+      if (!already) {
+        await notionFetch('PATCH', '/pages/' + state.resourceId, {
+          properties: { '時間記錄庫': { relation: [...existing, { id: newPageId }] } }
+        });
+      }
+      showStatus(`✓ 已記錄 ${formatMin(minutes)}，已同步到娛樂資料庫`, 'success');
+
+    // 學習（書籍／文章／影音）→ 同步到學習日誌
+    } else if (state.resourceId && state.subtype?.isLearning) {
+      const diaryRes = await notionFetch('POST', '/databases/' + DB_DIARY + '/query', {
+        filter: { property: 'Date', date: { equals: today } },
+        page_size: 1
+      });
+      if (diaryRes.results?.length) {
+        const diaryPage = diaryRes.results[0];
+        const diaryId = diaryPage.id;
+        const existingBooks = diaryPage.properties?.['學習書本與文章']?.relation || [];
+        const existingArticles = diaryPage.properties?.['網路文章與報導']?.relation || [];
+        if (state.subtype.key === 'book') {
+          const already = existingBooks.some(r => r.id === state.resourceId);
+          if (!already) {
+            await notionFetch('PATCH', '/pages/' + diaryId, {
+              properties: { '學習書本與文章': { relation: [...existingBooks, { id: state.resourceId }] } }
+            });
+          }
+        } else if (state.subtype.key === 'article' || state.subtype.key === 'video') {
+          const already = existingArticles.some(r => r.id === state.resourceId);
+          if (!already) {
+            await notionFetch('PATCH', '/pages/' + diaryId, {
+              properties: { '網路文章與報導': { relation: [...existingArticles, { id: state.resourceId }] } }
+            });
+          }
+        }
+        showStatus(`✓ 已記錄 ${formatMin(minutes)}，已同步到學習日誌`, 'success');
+      } else {
+        showStatus(`✓ 已記錄 ${formatMin(minutes)}｜⚠️ 今天尚無學習日誌，請先建立`, 'warn');
+      }
+
+    } else {
+      showStatus(`✓ 已記錄 ${formatMin(minutes)}`, 'success');
+    }
+    state.todayLogs.unshift({
+      name: state.resource || '其他',
+      area: state.area,
+      areaColor: AREA_COLORS[state.area] || '#888',
+      minutes,
+      startTime: new Date(state.startTime).toISOString(),
+      endTime: new Date(endTime).toISOString(),
+      isLearning: state.subtype?.isLearning || false,
+    });
+    renderLogs();
+    updateTotal();
+    renderGrid();
+  } catch(e) {
+    showStatus('儲存失敗：' + e.message, 'error');
+  }
+  resetTimer();
+}
+
+function cancelTimer() {
+  clearInterval(state.intervalId);
+  state.running = false;
+  resetTimer();
+}
+
+function resetTimer() {
+  state.startTime = null;
+  document.getElementById('timer-display').textContent = '00:00:00';
+  document.getElementById('timer-subject').textContent = '尚未開始';
+  document.getElementById('timer-block').classList.remove('running');
+  document.getElementById('timer-actions').innerHTML =
+    `<button class="btn btn-start" onclick="openPanel()">▶ 開始記錄</button>`;
+  document.getElementById('timer-actions').classList.add('single');
+  state.area = null; state.areaId = null;
+  state.subtype = null; state.resource = null; state.resourceId = null;
+}
+
+// Panel
+function openPanel() {
+  state.panelStep = 'area';
+  renderPanelArea();
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('panel-overlay').classList.add('show');
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('panel-overlay').classList.remove('show');
+}
+
+function renderPanelArea() {
+  document.getElementById('panel-title').textContent = '選擇領域';
+  const areas = Object.keys(AREA_COLORS);
+  document.getElementById('panel-content').innerHTML = `
+    <div class="area-grid">
+      ${areas.map(a => `
+        <div class="area-card ${state.area === a ? 'selected' : ''}" onclick="selectArea('${a}')">
+          <div class="area-dot" style="background:${AREA_COLORS[a]}"></div>
+          <div class="area-name">${a}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function selectArea(area) {
+  state.area = area;
+  state.areaId = AREA_IDS[area];
+  const subtypes = AREA_SUBTYPES[area] || [];
+  // 只有一個子類型且 db 為 null → 直接開始
+  if (subtypes.length === 1 && !subtypes[0].db) {
+    state.subtype = subtypes[0];
+    state.resource = subtypes[0].label;
+    state.resourceId = null;
+    closePanel();
+    startTimer();
+    return;
+  }
+  state.panelStep = 'subtype';
+  renderPanelSubtype();
+}
+
+function renderPanelSubtype() {
+  const subtypes = AREA_SUBTYPES[state.area] || [];
+  document.getElementById('panel-title').textContent = state.area + ' · 類型';
+  document.getElementById('panel-content').innerHTML = `
+    <div class="type-row">
+      ${subtypes.map(t => `
+        <div class="type-chip ${state.subtype?.key === t.key ? 'selected' : ''}" onclick="selectSubtype('${t.key}')">
+          ${t.label}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function selectSubtype(key) {
+  const subtypes = AREA_SUBTYPES[state.area] || [];
+  state.subtype = subtypes.find(t => t.key === key);
+  // 沒有對應 DB，或是「其他」類 → 直接開始
+  if (!state.subtype.db) {
+    state.resource = state.subtype.label;
+    state.resourceId = null;
+    closePanel();
+    startTimer();
+    return;
+  }
+  state.panelStep = 'resource';
+  renderPanelResource('');
+}
+
+let searchDebounce = null;
+function renderPanelResource(query) {
+  const subtype = state.subtype;
+  document.getElementById('panel-title').textContent = state.area + ' · ' + subtype.label;
+  document.getElementById('panel-content').innerHTML = `
+    <div class="search-box">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" id="res-search" placeholder="搜尋或輸入名稱..." value="${query}"
+        oninput="onSearch(this.value)" autocomplete="off" />
+    </div>
+    <div class="resource-list" id="res-list">
+      <div class="empty" style="padding:20px 0">輸入關鍵字搜尋</div>
+    </div>
+  `;
+  if (query || isAutoLoad()) {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => fetchResources(query), 300);
+  }
+  setTimeout(() => document.getElementById('res-search')?.focus(), 100);
+}
+
+function isAutoLoad() {
+  return ['devotion','bible','ministry','task','family_task','growth_task','fun'].includes(state.subtype?.key);
+}
+
+function onSearch(val) {
+  clearTimeout(searchDebounce);
+  if (!val.trim() && !isAutoLoad()) {
+    document.getElementById('res-list').innerHTML =
+      '<div class="empty" style="padding:20px 0">輸入關鍵字搜尋</div>';
+    return;
+  }
+  document.getElementById('res-list').innerHTML =
+    '<div class="empty" style="padding:20px 0"><span class="spinner"></span></div>';
+  searchDebounce = setTimeout(() => fetchResources(val.trim()), 350);
+}
+
+async function fetchResources(query) {
+  const subtype = state.subtype;
+  const dbId = subtype.db;
+
+  // 各子類型的載入設定
+  const CONFIG = {
+    devotion:     { sort: 'Date',        metaField: 'Date',        autoLoad: true,  filter: null },
+    bible:        { sort: 'Date',        metaField: 'Date',        autoLoad: true,  filter: null },
+    prayer:       { sort: null,          metaField: null,          autoLoad: false, filter: null },
+    task:         { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  filter: { property: '是否完成', checkbox: { equals: false } } },
+    family_task:  { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  filter: { property: '是否完成', checkbox: { equals: false } } },
+    growth_task:  { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  filter: { property: '是否完成', checkbox: { equals: false } } },
+    ministry:     { sort: 'Date',        metaField: 'Date',        autoLoad: true,  filter: null },
+    fun:          { sort: '開始接觸日期', metaField: '類型',        autoLoad: true,  filter: { property: '狀態', select: { does_not_equal: 'Completed' } } },
+    book:         { sort: null,          metaField: null,          autoLoad: false, filter: null },
+    article:      { sort: null,          metaField: null,          autoLoad: false, filter: null },
+    video:        { sort: null,          metaField: null,          autoLoad: false, filter: null },
+  };
+  const cfg = CONFIG[subtype.key] || { sort: null, metaField: null, autoLoad: false };
+
+  try {
+    const body = { page_size: query ? 50 : 5 };
+    if (cfg.sort) body.sorts = [{ property: cfg.sort, direction: 'descending' }];
+    if (cfg.filter && !query) body.filter = cfg.filter;
+
+    const res = await notionFetch('POST', '/databases/' + dbId + '/query', body);
+
+    const getTitle = (p) => {
+      const props = p.properties || {};
+      const arr = props['Title']?.title || props['Name']?.title || [];
+      return arr.map(seg => {
+        if (seg.type === 'mention' && seg.mention?.date?.start) return seg.mention.date.start;
+        return seg.plain_text || '';
+      }).join('').trim();
+    };
+
+    const items = res.results.filter(p => {
+      if (!query) return true;
+      const title = getTitle(p);
+      const meta = cfg.metaField ? (p.properties?.[cfg.metaField]?.date?.start || '') : '';
+      return title.toLowerCase().includes(query.toLowerCase()) || meta.includes(query);
+    });
+
+    const list = document.getElementById('res-list');
+    if (!list) return;
+    let html = '';
+    if (items.length === 0) {
+      html = `<div class="empty" style="padding:12px 0;font-size:12px">找不到符合的項目</div>`;
+    } else {
+      html = items.map(p => {
+        const title = getTitle(p) || '(無標題)';
+        const meta = cfg.metaField
+          ? (p.properties?.[cfg.metaField]?.date?.start?.slice(0,10) ||
+             p.properties?.[cfg.metaField]?.select?.name || '')
+          : '';
+        return `
+          <div class="resource-item" onclick="selectResource('${p.id}', \`${title.replace(/`/g,"'")}\`)">
+            <div class="resource-name">${title}</div>
+            ${meta ? `<div class="resource-meta">${meta}</div>` : ''}
+          </div>`;
+      }).join('');
+    }
+    if (query) {
+      html += `
+        <button class="create-new" onclick="createAndSelect(\`${query.replace(/`/g,"'")}\`)">
+          <span class="create-new-icon">＋</span>
+          <div>
+            <div class="create-new-text">新增到${subtype.label}</div>
+            <div class="create-new-title">${query}</div>
+          </div>
+        </button>`;
+    }
+    list.innerHTML = html;
+  } catch(e) {
+    const list = document.getElementById('res-list');
+    if (list) list.innerHTML = `<div class="empty" style="padding:20px 0;color:var(--danger)">搜尋失敗：${e.message}</div>`;
+  }
+}
+
+function getPageTitle(p) {
+  const props = p.properties || {};
+  for (const key of ['Title', 'Name', '名稱', '書名', '標題']) {
+    const val = props[key]?.title?.[0]?.plain_text;
+    if (val) return val;
+  }
+  return p.title?.[0]?.plain_text || '(無標題)';
+}
+
+function selectResource(id, name) {
+  state.resourceId = id;
+  state.resource = name;
+  closePanel();
+  startTimer();
+}
+
+async function createAndSelect(name) {
+  showStatus('建立頁面中...', '');
+  const subtype = state.subtype;
+  const dbId = subtype.db;
+  const titleField = subtype.titleField || 'Name';
+  try {
+    const body = {
+      parent: { database_id: dbId },
+      properties: { [titleField]: { title: [{ text: { content: name } }] } }
+    };
+    const res = await notionFetch('POST', '/pages', body);
+    state.resourceId = res.id;
+    state.resource = name;
+    closePanel();
+    startTimer();
+    showStatus('✓ 已建立：' + name, 'success');
+  } catch(e) {
+    showStatus('建立失敗：' + e.message, 'error');
+  }
+}
+
+// Save to Notion
+async function saveToNotion(startMs, endMs, minutes) {
+  // 台灣時區格式 +08:00
+  const toISO = ms => {
+    const localMs = ms + 8 * 60 * 60 * 1000;
+    return new Date(localMs).toISOString().replace('Z', '+08:00');
+  };
+  const subtype = state.subtype;
+  const startDate = new Date(startMs);
+  const mm = String(startDate.getMonth()+1).padStart(2,'0');
+  const dd = String(startDate.getDate()).padStart(2,'0');
+  const hh = String(startDate.getHours()).padStart(2,'0');
+  const mi = String(startDate.getMinutes()).padStart(2,'0');
+  const name = `${mm}-${dd} ${hh}:${mi} · ${state.resource || '其他'} · ${state.area}`;
+
+  const properties = {
+    '名稱': { title: [{ text: { content: name } }] },
+    '開始時間': { date: { start: toISO(startMs), end: null } },
+    '結束時間': { date: { start: toISO(endMs), end: null } },
+    '時長（分鐘）': { number: minutes },
+    '目標領域': { relation: [{ id: state.areaId }] },
+  };
+  // 根據子類型決定要 relation 的欄位
+  if (state.resourceId) {
+    if (subtype?.key === 'book') {
+      properties['書籍'] = { relation: [{ id: state.resourceId }] };
+    } else if (subtype?.key === 'article' || subtype?.key === 'video') {
+      properties['文章'] = { relation: [{ id: state.resourceId }] };
+    }
+    // 其他類型（禱告、服事、待辦、娛樂等）目前只記時，relation 欄位待確認後再加
+  }
+  const res = await notionFetch('POST', '/pages', {
+    parent: { database_id: DB_TIME },
+    properties
+  });
+  return res.id; // 回傳新建的時間記錄頁面 ID
+}
+
+// Load today logs
+async function loadTodayLogs() {
+  // 用台灣時區的今天日期
+  const taipeiNow = new Date(new Date().getTime() + 8 * 3600 * 1000);
+  const today = taipeiNow.toISOString().split('T')[0];
+  try {
+    const res = await notionFetch('POST', '/databases/' + DB_TIME + '/query', {
+      filter: { property: '開始時間', date: { equals: today } },
+      sorts: [{ property: '開始時間', direction: 'descending' }],
+      page_size: 20
+    });
+    state.todayLogs = (res.results || []).map(p => {
+      const props = p.properties || {};
+      const titleProp = props['名稱'] || {};
+      const titleArr = titleProp.title || [];
+      const fullName = (titleArr[0] && titleArr[0].plain_text) || '';
+      // 格式：mm-dd hh:mi · resource · area
+      const parts = fullName.split(' · ');
+      let resource, area;
+      if (parts.length >= 3) {
+        resource = parts.slice(1, parts.length - 1).join(' · ');
+        area = parts[parts.length - 1];
+      } else if (parts.length === 2) {
+        resource = parts[0];
+        area = parts[1];
+      } else {
+        resource = fullName;
+        area = '';
+      }
+      const actualProp = props['實際時長（分鐘）'] || {};
+      const formulaProp = actualProp.formula || {};
+      const actualMin = formulaProp.number || 0;
+      const legacyMin = (props['時長（分鐘）'] && props['時長（分鐘）'].number) || 0;
+      const min = actualMin || legacyMin;
+      const startDate = props['開始時間'] && props['開始時間'].date;
+      const endDate = props['結束時間'] && props['結束時間'].date;
+      const startISO = (startDate && startDate.start) || null;
+      const endISO = (endDate && endDate.start) || null;
+      const books = (props['書籍'] && props['書籍'].relation) || [];
+      const articles = (props['網路文章與報導'] && props['網路文章與報導'].relation) || [];
+      const isLearning = !!(books.length || articles.length);
+      return { name: resource, area, areaColor: AREA_COLORS[area] || '#888', minutes: min, startTime: startISO, endTime: endISO, isLearning };
+    });
+    renderLogs();
+    updateTotal();
+    renderGrid();
+  } catch(e) {
+    // silent fail on load
+  }
+}
+
+// Load today sleep
+async function loadSleepData() {
+  const taipeiNow = new Date(new Date().getTime() + 8 * 3600 * 1000);
+  const today = taipeiNow.toISOString().split('T')[0];
+  try {
+    const res = await notionFetch('POST', '/databases/' + DB_SLEEP + '/query', {
+      filter: { property: '日期', title: { equals: today } },
+      page_size: 1
+    });
+    if (!res.results?.length) return;
+    const props = res.results[0].properties || {};
+    const bedtime = props['就寢時間']?.date?.start || null;
+    const wakeup = props['起床時間']?.date?.start || null;
+    const minutes = props['睡眠時長（分鐘）']?.number || 0;
+    state.sleepLog = { bedtime, wakeup, minutes };
+    renderGrid();
+  } catch(e) {
+    // silent fail
+  }
+}
+
+function renderLogs() {
+  const list = document.getElementById('log-list');
+  if (!state.todayLogs.length) {
+    list.innerHTML = '<div class="empty">今天還沒有記錄<br>按上方開始按鈕來記錄第一筆</div>';
+    return;
+  }
+  list.innerHTML = state.todayLogs.map(log => `
+    <div class="log-item">
+      <div class="log-info">
+        <div class="log-name">${log.name}</div>
+        <div class="log-area">${log.area}</div>
+      </div>
+      <div class="log-time">${formatMin(log.minutes)}</div>
+    </div>
+  `).join('');
+}
+
+
+function renderGrid() {
+  const grid = document.getElementById('time-grid');
+  if (!grid) return;
+
+  // 建立 48 個格子，每格存入所有佔到這個時段的 log 片段
+  const cells = Array(48).fill(null).map((_, i) => ({
+    slot: i,
+    segments: [] // { log, minutes }
+  }));
+
+  // 把 ISO 時間轉成台灣時間的分鐘數（UTC+8）
+  const toTaipeiMin = iso => {
+    const ms = new Date(iso).getTime();
+    const taipeiDate = new Date(ms + 8 * 3600 * 1000);
+    return (taipeiDate.getUTCHours() * 60 + taipeiDate.getUTCMinutes()) % (24 * 60);
+  };
+
+  state.todayLogs.forEach(log => {
+    if (!log.startTime) return;
+    const startMin = toTaipeiMin(log.startTime);
+    const durationMin = log.minutes || 30;
+    const endMin = startMin + durationMin;
+
+    for (let slot = 0; slot < 48; slot++) {
+      const slotStart = slot * 30;
+      const slotEnd = slotStart + 30;
+      const overlapStart = Math.max(startMin, slotStart);
+      const overlapEnd = Math.min(endMin, slotEnd);
+      if (overlapEnd > overlapStart) {
+        cells[slot].segments.push({ log, minutes: overlapEnd - overlapStart, type: 'activity' });
+      }
+    }
+  });
+
+  // 睡眠區塊
+  if (state.sleepLog && state.sleepLog.bedtime && state.sleepLog.wakeup) {
+    const sleepStart = toTaipeiMin(state.sleepLog.bedtime);
+    const sleepEnd = toTaipeiMin(state.sleepLog.wakeup);
+    const pushSleep = (from, to) => {
+      for (let slot = 0; slot < 48; slot++) {
+        const slotStart = slot * 30;
+        const slotEnd = slotStart + 30;
+        const overlapStart = Math.max(from, slotStart);
+        const overlapEnd = Math.min(to, slotEnd);
+        if (overlapEnd > overlapStart) {
+          cells[slot].segments.push({
+            log: { name: '睡眠', area: '健康', isLearning: false },
+            minutes: overlapEnd - overlapStart,
+            type: 'health'
+          });
+        }
+      }
+    };
+    if (sleepEnd > sleepStart) {
+      // 同一天內（不跨午夜）
+      pushSleep(sleepStart, sleepEnd);
+    } else {
+      // 跨午夜：今天的時間軸只顯示 0:00 → 起床時間
+      // bedtime → 24:00 是昨天的事，不放在今天的時間軸
+      pushSleep(0, sleepEnd);
+    }
+  }
+
+  grid.innerHTML = cells.map(cell => {
+    const h = Math.floor(cell.slot / 2);
+    const m = cell.slot % 2 === 0 ? '00' : '30';
+    const timeLabel = `${String(h).padStart(2,'0')}:${m}`;
+    const total = cell.segments.reduce((s, seg) => s + seg.minutes, 0);
+
+    if (!cell.segments.length) {
+      return `<div class="hm-cell hm-cell-empty" onclick="showCellDetail(event, ${cell.slot})"></div>`;
+    }
+
+    // 先把 segments 按開始時間排序
+    const slotStartMin = cell.slot * 30;
+    let filledPct = 0;
+    const bars = cell.segments.map(seg => {
+      let startMin2;
+      if (seg.type === 'health') {
+        const sleepStart = toTaipeiMin(state.sleepLog.bedtime);
+        const sleepEnd = toTaipeiMin(state.sleepLog.wakeup);
+        const crossMidnight = sleepEnd <= sleepStart;
+        // 這個 slot 是屬於睡前半段還是睡後半段
+        startMin2 = (crossMidnight && cell.slot * 30 < sleepStart) ? 0 : sleepStart;
+      } else {
+        startMin2 = toTaipeiMin(seg.log.startTime);
+      }
+      const segOffsetInSlot = Math.max(startMin2 - slotStartMin, 0);
+      const offsetPct = (segOffsetInSlot / 30 * 100).toFixed(1);
+      const pct = (seg.minutes / 30 * 100).toFixed(1);
+      const type = seg.type === 'health' ? 'health'
+        : (seg.log.isLearning || seg.log.area === '學習' || seg.log.area === '個人成長') ? 'learning'
+        : seg.log.area === '樂趣' ? 'entertainment'
+        : (seg.log.area === '信仰' || seg.log.area === '服事') ? 'faith'
+        : seg.log.area === '事業' ? 'work'
+        : seg.log.area === '家庭' ? 'family'
+        : 'other';
+      const gap = offsetPct - filledPct;
+      filledPct = parseFloat(offsetPct) + parseFloat(pct);
+      return (gap > 0 ? `<div style="width:${gap}%;height:100%;flex-shrink:0;"></div>` : '') +
+             `<div class="hm-bar hm-bar-${type}" style="width:${pct}%"></div>`;
+    }).join('');
+
+    return `<div class="hm-cell" onclick="showCellDetail(event, ${cell.slot})">
+      <div class="hm-bar-wrap">${bars}</div>
+    </div>`;
+  }).join('');
+
+  // 預期格子（留空）
+  const plan = document.getElementById('time-grid-plan');
+  if (plan) {
+    plan.innerHTML = Array(48).fill(0).map((_, i) =>
+      `<div class="hm-cell hm-cell-empty"></div>`
+    ).join('');
+  }
+}
+
+// 格子詳細資訊 popup
+let activeCellPopup = null;
+
+function showCellDetail(e, slot) {
+  e.stopPropagation();
+
+  // 關閉現有的
+  if (activeCellPopup) {
+    activeCellPopup.remove();
+    activeCellPopup = null;
+    return;
+  }
+
+  const h = Math.floor(slot / 2);
+  const m = slot % 2 === 0 ? '00' : '30';
+  const hEnd = slot % 2 === 0 ? h : h + 1;
+  const mEnd = slot % 2 === 0 ? '30' : '00';
+  const timeStr = `${String(h).padStart(2,'0')}:${m} – ${String(hEnd).padStart(2,'0')}:${mEnd}`;
+
+  // 找到這個格子的 segments
+  const startMin = slot * 30;
+  const endMin = startMin + 30;
+  const segments = [];
+  const toLocalMinP = iso => {
+    const d = new Date(iso);
+    const utcMs = d.getTime();
+    const taipeiMs = utcMs + 8 * 60 * 60 * 1000;
+    const taipeiDate = new Date(taipeiMs);
+    return taipeiDate.getUTCHours() * 60 + taipeiDate.getUTCMinutes();
+  };
+  state.todayLogs.forEach(log => {
+    if (!log.startTime || !log.endTime) return;
+    const sMin = toLocalMinP(log.startTime);
+    const eMin = toLocalMinP(log.endTime);
+    const overlap = Math.min(eMin, endMin) - Math.max(sMin, startMin);
+    if (overlap > 0) segments.push({ log, minutes: overlap });
+  });
+
+  // 睡眠
+  if (state.sleepLog && state.sleepLog.bedtime && state.sleepLog.wakeup) {
+    const sleepStart = toLocalMinP(state.sleepLog.bedtime);
+    const sleepEnd = toLocalMinP(state.sleepLog.wakeup);
+    const sleepLog = { name: "睡眠", area: "健康", isLearning: false };
+    const checkOverlap = (from, to) => {
+      const overlap = Math.min(to, endMin) - Math.max(from, startMin);
+      if (overlap > 0) segments.push({ log: sleepLog, minutes: overlap });
+    };
+    if (sleepEnd > sleepStart) {
+      checkOverlap(sleepStart, sleepEnd);
+    } else {
+      checkOverlap(0, sleepEnd);
+    }
+  }
+
+  const popup = document.createElement('div');
+  popup.className = 'cell-popup';
+
+  if (!segments.length) {
+    popup.innerHTML = `<div class="cell-popup-time">${timeStr}</div>
+      <div style="color:var(--text-dim);font-size:12px;margin-top:4px;">未記錄</div>`;
+  } else {
+    popup.innerHTML = `<div class="cell-popup-time">${timeStr}</div>` +
+      segments.map(seg => {
+        const type = (seg.log.isLearning || seg.log.area === '學習' || seg.log.area === '個人成長') ? 'learning'
+          : seg.log.area === '樂趣' ? 'entertainment'
+          : (seg.log.area === '信仰' || seg.log.area === '服事') ? 'faith'
+          : seg.log.area === '事業' ? 'work'
+          : seg.log.area === '家庭' ? 'family'
+          : seg.log.area === '健康' ? 'health' : 'other';
+        const color = type === 'learning' ? 'var(--accent)'
+          : type === 'entertainment' ? 'var(--entertainment)'
+          : type === 'faith'   ? 'var(--faith)'
+          : type === 'work'    ? 'var(--work)'
+          : type === 'family'  ? 'var(--family)'
+          : type === 'health'  ? 'var(--health)'
+          : 'var(--text-dim)';
+        return `<div class="cell-popup-row">
+          <div class="cell-popup-dot" style="background:${color}"></div>
+          <div>
+            <div class="cell-popup-name">${seg.log.name || seg.log.area}</div>
+            <div class="cell-popup-meta">${seg.log.area} · ${seg.minutes}m</div>
+          </div>
+        </div>`;
+      }).join('');
+  }
+
+  // 定位
+  const rect = e.currentTarget.getBoundingClientRect();
+  document.body.appendChild(popup);
+  const pw = popup.offsetWidth;
+  const ph = popup.offsetHeight;
+  let left = rect.left + rect.width / 2 - pw / 2;
+  let top = rect.top - ph - 8 + window.scrollY;
+  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+  if (top < window.scrollY + 8) top = rect.bottom + 8 + window.scrollY;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+  activeCellPopup = popup;
+
+  // 點其他地方關閉
+  setTimeout(() => {
+    document.addEventListener('click', () => {
+      if (activeCellPopup) { activeCellPopup.remove(); activeCellPopup = null; }
+    }, { once: true });
+  }, 0);
+}
+
+function updateTotal() {
+  const total = state.todayLogs.reduce((s, l) => s + l.minutes, 0);
+  document.getElementById('total-display').textContent =
+    total ? formatMin(total) : '—';
+}
+
+// Helpers
+function formatMin(m) {
+  if (m < 60) return `${m}m`;
+  return `${Math.floor(m/60)}h ${m%60}m`;
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status-bar');
+  el.textContent = msg;
+  el.className = 'status-bar show' + (type ? ' ' + type : '');
+  clearTimeout(el._t);
+  if (type === 'success') el._t = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+async function notionFetch(method, path, body) {
+  const res = await fetch('https://notion-proxy.andyliu3909.workers.dev/v1' + path, {
+    method,
+    headers: {
+      'X-App-Key': APP_KEY,
+      'Content-Type': 'application/json',
+      'Notion-Version': '2022-06-28'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message || res.statusText); }
+  return res.json();
+}
+</script>
+</body>
+</html>
