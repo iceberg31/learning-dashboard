@@ -717,7 +717,7 @@ async function unlock() {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(val));
   const hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
   if (hash === PASS_HASH) {
-    sessionStorage.setItem('tt_auth', '1');
+    localStorage.setItem('tt_auth', '1');
     document.getElementById('lock-screen').style.display = 'none';
     init();
   } else {
@@ -728,7 +728,7 @@ async function unlock() {
   }
 }
 // 已解鎖過（同一 session）直接進入
-if (sessionStorage.getItem('tt_auth') === '1') {
+if (localStorage.getItem('tt_auth') === '1') {
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('lock-screen').style.display = 'none';
     init();
