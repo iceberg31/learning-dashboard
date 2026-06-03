@@ -995,10 +995,10 @@ async function stopTimer() {
 async function cancelTimer() {
   clearInterval(state.intervalId);
   state.running = false;
-  // 刪除開始時建立的頁面
+  // 取消時封存（archive）開始時建立的頁面
   if (state.currentPageId) {
     try {
-      await notionFetch('DELETE', '/blocks/' + state.currentPageId, null);
+      await notionFetch('PATCH', '/pages/' + state.currentPageId, { archived: true });
     } catch(e) { /* silent */ }
   }
   resetTimer();
@@ -1173,9 +1173,21 @@ async function fetchResources(query) {
     devotion:     { sort: 'Date',        metaField: 'Date',        autoLoad: true,  filter: null },
     bible:        { sort: 'Date',        metaField: 'Date',        autoLoad: true,  filter: null },
     prayer:       { sort: null,          metaField: null,          autoLoad: false, filter: null },
-    task:         { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  filter: { property: '是否完成', checkbox: { equals: false } }, sortDir: 'ascending' },
-    family_task:  { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  filter: { property: '是否完成', checkbox: { equals: false } }, sortDir: 'ascending' },
-    growth_task:  { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  filter: { property: '是否完成', checkbox: { equals: false } }, sortDir: 'ascending' },
+    task:         { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  sortDir: 'ascending',
+                    filter: { and: [
+                      { property: '是否完成', checkbox: { equals: false } },
+                      { property: '關聯目標領域', relation: { contains: '1f1dc059-8eb7-8232-bc49-015375d71c47' } }
+                    ]}},
+    family_task:  { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  sortDir: 'ascending',
+                    filter: { and: [
+                      { property: '是否完成', checkbox: { equals: false } },
+                      { property: '關聯目標領域', relation: { contains: '462dc059-8eb7-830b-beb1-016495c1f3bb' } }
+                    ]}},
+    growth_task:  { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  sortDir: 'ascending',
+                    filter: { and: [
+                      { property: '是否完成', checkbox: { equals: false } },
+                      { property: '關聯目標領域', relation: { contains: '2addc059-8eb7-82ec-a957-81eae8693b25' } }
+                    ]}},
     ministry:     { sort: 'Date',        metaField: 'Date',        autoLoad: true,  filter: null },
     fun:          { sort: '開始接觸日期', metaField: '類型',        autoLoad: true,  filter: { property: '狀態', select: { does_not_equal: 'Completed' } } },
     book:         { sort: null,          metaField: null,          autoLoad: false, filter: null },
@@ -1411,7 +1423,10 @@ function renderGrid() {
   state.todayLogs.forEach(log => {
     if (!log.startTime) return;
     const startMin = toTaipeiMin(log.startTime);
-    const durationMin = log.minutes || 30;
+    const endMin2 = log.endTime ? toTaipeiMin(log.endTime) : null;
+    const durationMin = log.minutes > 0 ? log.minutes
+      : endMin2 ? Math.max(endMin2 - startMin, 1)
+      : 1; // 進行中的記錄只佔 1 分鐘
     const endMin = startMin + durationMin;
 
     for (let slot = 0; slot < 48; slot++) {
