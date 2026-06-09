@@ -820,6 +820,7 @@ let state = {
   resource: null,
   resourceId: null,
   currentPageId: null, // 開始計時時建立的 Notion 頁面 ID
+  linkedRelations: [], // 開始時建立的 relation（取消時用來移除）
   todayLogs: [],
   sleepLog: null,
   panelStep: 'area',
@@ -858,10 +859,12 @@ async function startTimer() {
   `;
   document.getElementById('timer-actions').classList.remove('single');
 
-  // 開始時就建立 Notion 頁面
+  // 開始時就建立 Notion 頁面，並「立刻」把 relation 建起來
   try {
     const page = await createStartPage(state.startTime);
     state.currentPageId = page.id;
+    const linkLabel = await buildResourceRelation(page.id);
+    showStatus(linkLabel ? `▶ 已開始 · ${linkLabel}` : '▶ 已開始計時', 'success');
   } catch(e) {
     showStatus('⚠️ Notion 寫入失敗：' + e.message, 'error');
   }
@@ -876,104 +879,9 @@ async function stopTimer() {
 
   showStatus('儲存中...', '');
   try {
-    const newPageId = await saveToNotion(state.startTime, endTime, minutes);
-    const taipeiNow = new Date(new Date().getTime() + 8 * 3600 * 1000);
-    const today = taipeiNow.toISOString().split('T')[0];
+    await saveToNotion(state.startTime, endTime, minutes);
+    showStatus(`✓ 已記錄 ${formatMin(minutes)}`, 'success');
 
-    // 信仰（靈修／查經）→ relation 進靈修日記「時間記錄庫」
-    if (state.resourceId && (state.subtype?.key === 'devotion' || state.subtype?.key === 'bible')) {
-      const existing = (await notionFetch('GET', '/pages/' + state.resourceId))
-        .properties?.['時間記錄庫']?.relation || [];
-      const already = existing.some(r => r.id === newPageId);
-      if (!already) {
-        await notionFetch('PATCH', '/pages/' + state.resourceId, {
-          properties: { '時間記錄庫': { relation: [...existing, { id: newPageId }] } }
-        });
-      }
-      showStatus(`✓ 已記錄 ${formatMin(minutes)}，已同步到靈修日記`, 'success');
-
-    // 信仰（禱告）→ relation 進代禱資料庫「時間記錄庫」
-    } else if (state.resourceId && state.subtype?.key === 'prayer') {
-      const existing = (await notionFetch('GET', '/pages/' + state.resourceId))
-        .properties?.['時間記錄庫']?.relation || [];
-      const already = existing.some(r => r.id === newPageId);
-      if (!already) {
-        await notionFetch('PATCH', '/pages/' + state.resourceId, {
-          properties: { '時間記錄庫': { relation: [...existing, { id: newPageId }] } }
-        });
-      }
-      showStatus(`✓ 已記錄 ${formatMin(minutes)}，已同步到代禱資料庫`, 'success');
-
-    // 樂趣 → relation 進娛樂資料庫「時間記錄庫」
-    } else if (state.resourceId && state.subtype?.key === 'fun') {
-      const existing = (await notionFetch('GET', '/pages/' + state.resourceId))
-        .properties?.['時間記錄庫']?.relation || [];
-      const already = existing.some(r => r.id === newPageId);
-      if (!already) {
-        await notionFetch('PATCH', '/pages/' + state.resourceId, {
-          properties: { '時間記錄庫': { relation: [...existing, { id: newPageId }] } }
-        });
-      }
-      showStatus(`✓ 已記錄 ${formatMin(minutes)}，已同步到娛樂資料庫`, 'success');
-
-    // 待辦任務（事業／家庭／個人成長）→ relation 進待辦事項「時間」
-    } else if (state.resourceId && ['task','family_task','growth_task'].includes(state.subtype?.key)) {
-      const existing = (await notionFetch('GET', '/pages/' + state.resourceId))
-        .properties?.['時間']?.relation || [];
-      const already = existing.some(r => r.id === newPageId);
-      if (!already) {
-        await notionFetch('PATCH', '/pages/' + state.resourceId, {
-          properties: { '時間': { relation: [...existing, { id: newPageId }] } }
-        });
-      }
-      showStatus(`✓ 已記錄 ${formatMin(minutes)}，已同步到待辦事項`, 'success');
-
-    // 服事 → relation 進教會服事「時間記錄庫」（待確認欄位名）
-    } else if (state.resourceId && state.subtype?.key === 'ministry') {
-      const existing = (await notionFetch('GET', '/pages/' + state.resourceId))
-        .properties?.['時間記錄庫']?.relation || [];
-      const already = existing.some(r => r.id === newPageId);
-      if (!already) {
-        await notionFetch('PATCH', '/pages/' + state.resourceId, {
-          properties: { '時間記錄庫': { relation: [...existing, { id: newPageId }] } }
-        });
-      }
-      showStatus(`✓ 已記錄 ${formatMin(minutes)}，已同步到服事記錄`, 'success');
-
-    // 學習（書籍／文章／影音）→ 同步到學習日誌
-    } else if (state.resourceId && state.subtype?.isLearning) {
-      const diaryRes = await notionFetch('POST', '/databases/' + DB_DIARY + '/query', {
-        filter: { property: 'Date', date: { equals: today } },
-        page_size: 1
-      });
-      if (diaryRes.results?.length) {
-        const diaryPage = diaryRes.results[0];
-        const diaryId = diaryPage.id;
-        const existingBooks = diaryPage.properties?.['學習書本與文章']?.relation || [];
-        const existingArticles = diaryPage.properties?.['網路文章與報導']?.relation || [];
-        if (state.subtype.key === 'book') {
-          const already = existingBooks.some(r => r.id === state.resourceId);
-          if (!already) {
-            await notionFetch('PATCH', '/pages/' + diaryId, {
-              properties: { '學習書本與文章': { relation: [...existingBooks, { id: state.resourceId }] } }
-            });
-          }
-        } else if (state.subtype.key === 'article' || state.subtype.key === 'video') {
-          const already = existingArticles.some(r => r.id === state.resourceId);
-          if (!already) {
-            await notionFetch('PATCH', '/pages/' + diaryId, {
-              properties: { '網路文章與報導': { relation: [...existingArticles, { id: state.resourceId }] } }
-            });
-          }
-        }
-        showStatus(`✓ 已記錄 ${formatMin(minutes)}，已同步到學習日誌`, 'success');
-      } else {
-        showStatus(`✓ 已記錄 ${formatMin(minutes)}｜⚠️ 今天尚無學習日誌，請先建立`, 'warn');
-      }
-
-    } else {
-      showStatus(`✓ 已記錄 ${formatMin(minutes)}`, 'success');
-    }
     state.todayLogs.unshift({
       name: state.resource || '其他',
       area: state.area,
@@ -995,13 +903,92 @@ async function stopTimer() {
 async function cancelTimer() {
   clearInterval(state.intervalId);
   state.running = false;
-  // 取消時封存（archive）開始時建立的頁面
+  // 取消時：先移除開始時建立的 relation，再封存頁面
+  for (const link of state.linkedRelations || []) {
+    await removeRelation(link.targetPageId, link.field, link.addId);
+  }
   if (state.currentPageId) {
     try {
       await notionFetch('PATCH', '/pages/' + state.currentPageId, { archived: true });
     } catch(e) { /* silent */ }
   }
   resetTimer();
+}
+
+// 開始計時時就把 relation 建起來（不再等到結束）
+async function buildResourceRelation(timePageId) {
+  if (!state.resourceId) return '';
+  const key = state.subtype?.key;
+
+  // 靈修／查經 → 靈修日記「時間記錄庫」
+  if (key === 'devotion' || key === 'bible') {
+    await appendRelation(state.resourceId, '時間記錄庫', timePageId);
+    return '已連結靈修日記';
+  }
+  // 禱告 → 代禱資料庫「時間記錄庫」
+  if (key === 'prayer') {
+    await appendRelation(state.resourceId, '時間記錄庫', timePageId);
+    return '已連結代禱資料庫';
+  }
+  // 樂趣 → 娛樂資料庫「時間記錄庫」
+  if (key === 'fun') {
+    await appendRelation(state.resourceId, '時間記錄庫', timePageId);
+    return '已連結娛樂資料庫';
+  }
+  // 待辦任務（事業／家庭／個人成長）→ 待辦事項「時間」
+  if (['task','family_task','growth_task'].includes(key)) {
+    await appendRelation(state.resourceId, '時間', timePageId);
+    return '已連結待辦事項';
+  }
+  // 服事 → 教會服事「時間記錄庫」
+  if (key === 'ministry') {
+    await appendRelation(state.resourceId, '時間記錄庫', timePageId);
+    return '已連結服事記錄';
+  }
+  // 學習（書籍／文章／影音）→ 今天的學習日誌
+  if (state.subtype?.isLearning) {
+    const taipeiNow = new Date(new Date().getTime() + 8 * 3600 * 1000);
+    const today = taipeiNow.toISOString().split('T')[0];
+    const diaryRes = await notionFetch('POST', '/databases/' + DB_DIARY + '/query', {
+      filter: { property: 'Date', date: { equals: today } },
+      page_size: 1
+    });
+    if (!diaryRes.results?.length) return '⚠️ 今天尚無學習日誌';
+    const diaryId = diaryRes.results[0].id;
+    if (key === 'book') {
+      await appendRelation(diaryId, '學習書本與文章', state.resourceId);
+    } else {
+      await appendRelation(diaryId, '網路文章與報導', state.resourceId);
+    }
+    return '已連結學習日誌';
+  }
+  return '';
+}
+
+// 把 addId 追加到 targetPage 的 relation 欄位（去重），並記下來以便取消時移除
+async function appendRelation(targetPageId, field, addId) {
+  const page = await notionFetch('GET', '/pages/' + targetPageId);
+  const existing = page.properties?.[field]?.relation || [];
+  if (!existing.some(r => r.id === addId)) {
+    await notionFetch('PATCH', '/pages/' + targetPageId, {
+      properties: { [field]: { relation: [...existing, { id: addId }] } }
+    });
+  }
+  state.linkedRelations.push({ targetPageId, field, addId });
+}
+
+// 移除 relation（取消計時時用）
+async function removeRelation(targetPageId, field, removeId) {
+  try {
+    const page = await notionFetch('GET', '/pages/' + targetPageId);
+    const existing = page.properties?.[field]?.relation || [];
+    const filtered = existing.filter(r => r.id !== removeId);
+    if (filtered.length !== existing.length) {
+      await notionFetch('PATCH', '/pages/' + targetPageId, {
+        properties: { [field]: { relation: filtered } }
+      });
+    }
+  } catch(e) { /* silent */ }
 }
 
 // 開始計時時建立頁面（只有開始時間，無結束時間）
@@ -1051,6 +1038,7 @@ function resetTimer() {
   state.area = null; state.areaId = null;
   state.subtype = null; state.resource = null; state.resourceId = null;
   state.currentPageId = null;
+  state.linkedRelations = [];
 }
 
 // Panel
@@ -1360,7 +1348,7 @@ async function loadTodayLogs() {
     updateTotal();
     renderGrid();
   } catch(e) {
-    // silent fail on load
+    showStatus('今日記錄載入失敗：' + e.message, 'error');
   }
 }
 
@@ -1368,21 +1356,39 @@ async function loadTodayLogs() {
 async function loadSleepData() {
   const taipeiNow = new Date(new Date().getTime() + 8 * 3600 * 1000);
   const today = taipeiNow.toISOString().split('T')[0];
+  let row = null;
   try {
+    // 先用原本的精準查詢
     const res = await notionFetch('POST', '/databases/' + DB_SLEEP + '/query', {
       filter: { property: '日期', title: { equals: today } },
       page_size: 1
     });
-    if (!res.results?.length) return;
-    const props = res.results[0].properties || {};
-    const bedtime = props['就寢時間']?.date?.start || null;
-    const wakeup = props['起床時間']?.date?.start || null;
-    const minutes = props['睡眠時長（分鐘）']?.number || 0;
-    state.sleepLog = { bedtime, wakeup, minutes };
-    renderGrid();
+    row = res.results?.[0] || null;
   } catch(e) {
-    // silent fail
+    // 欄位可能被改名／改型別 → 改用寬鬆掃描，不靠特定欄位名
+    try {
+      const res2 = await notionFetch('POST', '/databases/' + DB_SLEEP + '/query', { page_size: 20 });
+      row = (res2.results || []).find(p => {
+        const titleProp = Object.values(p.properties || {}).find(v => v.type === 'title');
+        const titleStr = (titleProp?.title || []).map(seg => seg.plain_text || '').join('').trim();
+        return titleStr.startsWith(today);
+      }) || null;
+      if (!row) showStatus('睡眠：今天找不到資料（日期欄位可能已變更）', 'error');
+    } catch(e2) {
+      showStatus('睡眠資料載入失敗：' + e2.message, 'error');
+      return;
+    }
   }
+  if (!row) return; // 今天還沒資料（例如 8am 自動化還沒跑）
+  const props = row.properties || {};
+  const bedtime = props['就寢時間']?.date?.start || null;
+  const wakeup = props['起床時間']?.date?.start || null;
+  const minutes = props['睡眠時長（分鐘）']?.number || 0;
+  if (!bedtime || !wakeup) {
+    showStatus('睡眠：找到今天資料，但「就寢時間／起床時間」讀不到', 'error');
+  }
+  state.sleepLog = { bedtime, wakeup, minutes };
+  renderGrid();
 }
 
 function renderLogs() {
