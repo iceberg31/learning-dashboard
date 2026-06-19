@@ -20,9 +20,10 @@
   --accent-dim: #a89a72;
   --danger: #e07060;
   --success: #7ec88a;
-  --faith: #a78bfa;
+  --faith: #f87171;
+  --ministry: #a78bfa;
   --growth: #60a5fa;
-  --work: #f59e0b;
+  --work: #3b82f6;
   --family: #f472b6;
   --health: #34d399;
   --finance: #fbbf24;
@@ -440,6 +441,7 @@ body {
 }
 .hm-learning      { background: var(--accent); }
 .hm-faith         { background: var(--faith); }
+.hm-ministry      { background: var(--ministry); }
 .hm-work          { background: var(--work); }
 .hm-family        { background: var(--family); }
 .hm-entertainment { background: var(--entertainment); }
@@ -494,6 +496,7 @@ body {
 }
 .hm-bar-learning      { background: var(--accent);        opacity: 1;   }
 .hm-bar-faith         { background: var(--faith);         opacity: 0.9; }
+.hm-bar-ministry      { background: var(--ministry);      opacity: 0.9; }
 .hm-bar-work          { background: var(--work);          opacity: 0.9; }
 .hm-bar-family        { background: var(--family);        opacity: 0.9; }
 .hm-bar-entertainment { background: var(--entertainment); opacity: 0.8; }
@@ -642,7 +645,12 @@ body {
 
 <div class="header">
   <div class="header-date" id="header-date"></div>
-  <div class="header-title">時間<span>記錄</span></div>
+  <div class="header-title" style="display:flex;align-items:center;gap:12px;">
+    <button onclick="navigateDay(-1)" style="background:none;border:1px solid var(--border);color:var(--text-dim);border-radius:8px;padding:4px 10px;font-size:14px;cursor:pointer;">◀</button>
+    <span>時間<span style="color:var(--accent);font-weight:500;">記錄</span></span>
+    <button onclick="navigateDay(1)" style="background:none;border:1px solid var(--border);color:var(--text-dim);border-radius:8px;padding:4px 10px;font-size:14px;cursor:pointer;">▶</button>
+    <button id="btn-today" onclick="goToday()" style="display:none;background:var(--accent);color:#0f0f0f;border:none;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;cursor:pointer;">今天</button>
+  </div>
 </div>
 
 <!-- Timer -->
@@ -657,13 +665,13 @@ body {
 
 <!-- Today total -->
 <div class="total-bar">
-  <div class="total-label">今日累積</div>
+  <div class="total-label" id="total-label">今日累積</div>
   <div class="total-value" id="total-display">—</div>
 </div>
 
 <!-- Today log -->
 <div class="section">
-  <div class="section-title">今天的記錄</div>
+  <div class="section-title" id="log-section-title">今天的記錄</div>
   <div class="log-list" id="log-list">
     <div class="empty">今天還沒有記錄<br>按上方開始按鈕來記錄第一筆</div>
   </div>
@@ -672,13 +680,14 @@ body {
 <!-- 24hr Grid -->
 <div class="section">
   <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
-    <span>今日時間軸</span>
+    <span id="grid-section-title">今日時間軸</span>
     <span style="font-size:10px;color:var(--text-dim)">每格 30 分鐘</span>
   </div>
   <div class="heatmap-legend">
     <div class="hm-legend-row">
       <span class="hm-dot hm-learning"></span><span>學習／個人成長</span>
-      <span class="hm-dot hm-faith"></span><span>信仰／服事</span>
+      <span class="hm-dot hm-faith"></span><span>信仰</span>
+      <span class="hm-dot hm-ministry"></span><span>服事</span>
       <span class="hm-dot hm-work"></span><span>事業</span>
       <span class="hm-dot hm-family"></span><span>家庭</span>
     </div>
@@ -752,7 +761,7 @@ const AREA_COLORS = {
   '信仰': 'var(--faith)',
   '事業': 'var(--work)',
   '家庭': 'var(--family)',
-  '服事': 'var(--faith)',
+  '服事': 'var(--ministry)',
   '樂趣': 'var(--entertainment)',
   '健康': 'var(--health)',
   '學習': 'var(--growth)',
@@ -780,11 +789,11 @@ const AREA_SUBTYPES = {
   ],
   '事業': [
     { key: 'task',          label: '待辦任務', db: DB_TASKS,     titleField: 'Name',  isLearning: false },
-    { key: 'other_work',    label: '其他',     db: null,         isLearning: false },
+    { key: 'other_work',    label: '其他',     db: DB_TASKS,     titleField: 'Name',  isLearning: false },
   ],
   '家庭': [
     { key: 'family_task',   label: '待辦任務', db: DB_TASKS,     titleField: 'Name',  isLearning: false },
-    { key: 'other_family',  label: '其他',     db: null,         isLearning: false },
+    { key: 'other_family',  label: '其他',     db: DB_TASKS,     titleField: 'Name',  isLearning: false },
   ],
   '服事': [
     { key: 'ministry',      label: '服事項目', db: DB_MINISTRY,  titleField: 'Name',  isLearning: false },
@@ -805,7 +814,7 @@ const AREA_SUBTYPES = {
   ],
   '個人成長': [
     { key: 'growth_task',   label: '待辦任務', db: DB_TASKS,     titleField: 'Name',  isLearning: false },
-    { key: 'other_growth',  label: '其他',     db: null,         isLearning: false },
+    { key: 'other_growth',  label: '其他',     db: DB_TASKS,     titleField: 'Name',  isLearning: false },
   ],
 };
 
@@ -821,18 +830,63 @@ let state = {
   resourceId: null,
   currentPageId: null, // 開始計時時建立的 Notion 頁面 ID
   linkedRelations: [], // 開始時建立的 relation（取消時用來移除）
+  viewDate: null, // 'YYYY-MM-DD' 目前顯示的日期
   todayLogs: [],
   sleepLog: null,
   panelStep: 'area',
 };
 
 // Init
+function getTaipeiToday() {
+  const taipeiNow = new Date(new Date().getTime() + 8 * 3600 * 1000);
+  return taipeiNow.toISOString().split('T')[0];
+}
+
 function init() {
-  const now = new Date();
+  state.viewDate = getTaipeiToday();
+  updateDateDisplay();
+  loadLogsForDate(state.viewDate);
+  loadSleepForDate(state.viewDate);
+}
+
+function updateDateDisplay() {
+  const d = new Date(state.viewDate + 'T00:00:00+08:00');
+  const isToday = state.viewDate === getTaipeiToday();
   document.getElementById('header-date').textContent =
-    now.toLocaleDateString('zh-TW', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
-  loadTodayLogs();
-  loadSleepData();
+    d.toLocaleDateString('zh-TW', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+  // 日期導航按鈕
+  const nav = document.getElementById('date-nav');
+  if (nav) nav.style.display = isToday ? 'none' : 'inline';
+  const todayBtn = document.getElementById('btn-today');
+  if (todayBtn) todayBtn.style.display = isToday ? 'none' : 'inline-block';
+  // 更新 section labels
+  const logTitle = document.getElementById('log-section-title');
+  if (logTitle) logTitle.textContent = isToday ? '今天的記錄' : state.viewDate + ' 的記錄';
+  const gridTitle = document.getElementById('grid-section-title');
+  if (gridTitle) gridTitle.textContent = isToday ? '今日時間軸' : state.viewDate + ' 時間軸';
+  const totalLabel = document.getElementById('total-label');
+  if (totalLabel) totalLabel.textContent = isToday ? '今日累積' : state.viewDate + ' 累積';
+}
+
+function navigateDay(offset) {
+  const d = new Date(state.viewDate + 'T00:00:00+08:00');
+  d.setDate(d.getDate() + offset);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  state.viewDate = y+'-'+m+'-'+dd;
+  // 不允許超過今天
+  if (state.viewDate > getTaipeiToday()) { state.viewDate = getTaipeiToday(); }
+  updateDateDisplay();
+  loadLogsForDate(state.viewDate);
+  loadSleepForDate(state.viewDate);
+}
+
+function goToday() {
+  state.viewDate = getTaipeiToday();
+  updateDateDisplay();
+  loadLogsForDate(state.viewDate);
+  loadSleepForDate(state.viewDate);
 }
 
 // Timer
@@ -936,7 +990,7 @@ async function buildResourceRelation(timePageId) {
     return '已連結娛樂資料庫';
   }
   // 待辦任務（事業／家庭／個人成長）→ 待辦事項「時間」
-  if (['task','family_task','growth_task'].includes(key)) {
+  if (['task','family_task','growth_task','other_work','other_family','other_growth'].includes(key)) {
     await appendRelation(state.resourceId, '時間', timePageId);
     return '已連結待辦事項';
   }
@@ -1137,7 +1191,7 @@ function renderPanelResource(query) {
 }
 
 function isAutoLoad() {
-  return ['devotion','bible','ministry','task','family_task','growth_task','fun'].includes(state.subtype?.key);
+  return ['devotion','bible','ministry','task','family_task','growth_task','other_work','other_family','other_growth','fun'].includes(state.subtype?.key);
 }
 
 function onSearch(val) {
@@ -1176,8 +1230,27 @@ async function fetchResources(query) {
                       { property: '是否完成', checkbox: { equals: false } },
                       { property: '關聯目標領域', relation: { contains: '2addc059-8eb7-82ec-a957-81eae8693b25' } }
                     ]}},
+    other_work:   { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  sortDir: 'ascending',
+                    filter: { and: [
+                      { property: '是否完成', checkbox: { equals: false } },
+                      { property: '關聯目標領域', relation: { contains: '1f1dc059-8eb7-8232-bc49-015375d71c47' } }
+                    ]}},
+    other_family: { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  sortDir: 'ascending',
+                    filter: { and: [
+                      { property: '是否完成', checkbox: { equals: false } },
+                      { property: '關聯目標領域', relation: { contains: '462dc059-8eb7-830b-beb1-016495c1f3bb' } }
+                    ]}},
+    other_growth: { sort: '完成期限',    metaField: '完成期限',    autoLoad: true,  sortDir: 'ascending',
+                    filter: { and: [
+                      { property: '是否完成', checkbox: { equals: false } },
+                      { property: '關聯目標領域', relation: { contains: '2addc059-8eb7-82ec-a957-81eae8693b25' } }
+                    ]}},
     ministry:     { sort: 'Date',        metaField: 'Date',        autoLoad: true,  filter: null },
-    fun:          { sort: '開始接觸日期', metaField: '類型',        autoLoad: true,  filter: { property: '狀態', select: { does_not_equal: 'Completed' } } },
+    fun:          { sort: '開始接觸日期', metaField: '類型',        autoLoad: true,  filter: { and: [
+                      { property: '狀態', select: { does_not_equal: 'Completed' } },
+                      { property: '狀態', select: { does_not_equal: 'Not Started' } },
+                      { property: '狀態', select: { does_not_equal: 'Stoped' } }
+                    ]} },
     book:         { sort: null,          metaField: null,          autoLoad: false, filter: null },
     article:      { sort: null,          metaField: null,          autoLoad: false, filter: null },
     video:        { sort: null,          metaField: null,          autoLoad: false, filter: null },
@@ -1271,10 +1344,12 @@ async function createAndSelect(name) {
   const dbId = subtype.db;
   const titleField = subtype.titleField || 'Name';
   try {
-    const body = {
-      parent: { database_id: dbId },
-      properties: { [titleField]: { title: [{ text: { content: name } }] } }
-    };
+    const props = { [titleField]: { title: [{ text: { content: name } }] } };
+    // 待辦任務自動帶入目標領域
+    if (['task','family_task','growth_task','other_work','other_family','other_growth'].includes(subtype.key) && state.areaId) {
+      props['關聯目標領域'] = { relation: [{ id: state.areaId }] };
+    }
+    const body = { parent: { database_id: dbId }, properties: props };
     const res = await notionFetch('POST', '/pages', body);
     state.resourceId = res.id;
     state.resource = name;
@@ -1302,13 +1377,18 @@ async function saveToNotion(startMs, endMs, minutes) {
 }
 
 // Load today logs
-async function loadTodayLogs() {
-  // 用台灣時區的今天日期
-  const taipeiNow = new Date(new Date().getTime() + 8 * 3600 * 1000);
-  const today = taipeiNow.toISOString().split('T')[0];
+async function loadLogsForDate(dateStr) {
+  const today = dateStr || getTaipeiToday();
+  const d = new Date(today + 'T00:00:00+08:00');
+  const d2 = new Date(d.getTime() + 24 * 3600 * 1000);
+  const tomorrow = d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
   try {
+    // 用明確的台灣時區範圍，避免 00:00~08:00 的記錄因 UTC 日期不同而漏掉
     const res = await notionFetch('POST', '/databases/' + DB_TIME + '/query', {
-      filter: { property: '開始時間', date: { equals: today } },
+      filter: { and: [
+        { property: '開始時間', date: { on_or_after: today + 'T00:00:00+08:00' } },
+        { property: '開始時間', date: { before: tomorrow + 'T00:00:00+08:00' } }
+      ]},
       sorts: [{ property: '開始時間', direction: 'descending' }],
       page_size: 20
     });
@@ -1348,14 +1428,13 @@ async function loadTodayLogs() {
     updateTotal();
     renderGrid();
   } catch(e) {
-    showStatus('今日記錄載入失敗：' + e.message, 'error');
+    showStatus('記錄載入失敗：' + e.message, 'error');
   }
 }
 
 // Load today sleep
-async function loadSleepData() {
-  const taipeiNow = new Date(new Date().getTime() + 8 * 3600 * 1000);
-  const today = taipeiNow.toISOString().split('T')[0];
+async function loadSleepForDate(dateStr) {
+  const today = dateStr || getTaipeiToday();
   let row = null;
   try {
     // 先用原本的精準查詢
@@ -1505,7 +1584,8 @@ function renderGrid() {
       const type = seg.type === 'health' ? 'health'
         : (seg.log.isLearning || seg.log.area === '學習' || seg.log.area === '個人成長') ? 'learning'
         : seg.log.area === '樂趣' ? 'entertainment'
-        : (seg.log.area === '信仰' || seg.log.area === '服事') ? 'faith'
+        : seg.log.area === '信仰' ? 'faith'
+        : seg.log.area === '服事' ? 'ministry'
         : seg.log.area === '事業' ? 'work'
         : seg.log.area === '家庭' ? 'family'
         : 'other';
@@ -1594,13 +1674,15 @@ function showCellDetail(e, slot) {
       segments.map(seg => {
         const type = (seg.log.isLearning || seg.log.area === '學習' || seg.log.area === '個人成長') ? 'learning'
           : seg.log.area === '樂趣' ? 'entertainment'
-          : (seg.log.area === '信仰' || seg.log.area === '服事') ? 'faith'
+          : seg.log.area === '信仰' ? 'faith'
+        : seg.log.area === '服事' ? 'ministry'
           : seg.log.area === '事業' ? 'work'
           : seg.log.area === '家庭' ? 'family'
           : seg.log.area === '健康' ? 'health' : 'other';
         const color = type === 'learning' ? 'var(--accent)'
           : type === 'entertainment' ? 'var(--entertainment)'
           : type === 'faith'   ? 'var(--faith)'
+          : type === 'ministry' ? 'var(--ministry)'
           : type === 'work'    ? 'var(--work)'
           : type === 'family'  ? 'var(--family)'
           : type === 'health'  ? 'var(--health)'
