@@ -28,6 +28,8 @@
   --health: #34d399;
   --finance: #fbbf24;
   --entertainment: #fb923c;
+  --daily: #94a3b8;
+  --distraction: #facc15;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -445,6 +447,8 @@ body {
 .hm-work          { background: var(--work); }
 .hm-family        { background: var(--family); }
 .hm-entertainment { background: var(--entertainment); }
+.hm-daily         { background: var(--daily); }
+.hm-distraction   { background: var(--distraction); }
 .hm-other         { background: var(--text-dim); }
 
 .heatmap-grid {
@@ -500,6 +504,8 @@ body {
 .hm-bar-work          { background: var(--work);          opacity: 0.9; }
 .hm-bar-family        { background: var(--family);        opacity: 0.9; }
 .hm-bar-entertainment { background: var(--entertainment); opacity: 0.8; }
+.hm-bar-daily         { background: var(--daily);         opacity: 0.85; }
+.hm-bar-distraction   { background: var(--distraction);   opacity: 0.95; }
 .hm-bar-other         { background: var(--text-dim);      opacity: 0.6; }
 .hm-bar-health        { background: var(--health);        opacity: 0.9; }
 .hm-cell { cursor: pointer; transition: transform 0.1s; }
@@ -666,7 +672,10 @@ body {
 <!-- Today total -->
 <div class="total-bar">
   <div class="total-label" id="total-label">今日累積</div>
-  <div class="total-value" id="total-display">—</div>
+  <div style="text-align:right;">
+    <div class="total-value" id="total-display">—</div>
+    <div id="coverage-display" style="font-size:11px;color:var(--text-dim);margin-top:3px;font-family:'DM Mono',monospace;">—</div>
+  </div>
 </div>
 
 <!-- Today log -->
@@ -694,6 +703,8 @@ body {
     <div class="hm-legend-row">
       <span class="hm-dot hm-entertainment"></span><span>樂趣</span>
       <span class="hm-dot" style="background:var(--health)"></span><span>健康</span>
+      <span class="hm-dot hm-daily"></span><span>日常</span>
+      <span class="hm-dot hm-distraction"></span><span>分心</span>
       <span class="hm-dot hm-other"></span><span>其他</span>
     </div>
   </div>
@@ -766,6 +777,7 @@ const AREA_COLORS = {
   '健康': 'var(--health)',
   '學習': 'var(--growth)',
   '個人成長': 'var(--growth)',
+  '日常': 'var(--daily)',
 };
 const AREA_IDS = {
   '信仰': 'fc0dc059-8eb7-8393-b4b9-81c8af7ed3c7',
@@ -776,6 +788,7 @@ const AREA_IDS = {
   '健康': 'ec6dc059-8eb7-8214-b7d2-8128d1a8dc3d',
   '學習': '2addc059-8eb7-82ec-a957-81eae8693b25',
   '個人成長': '2addc059-8eb7-82ec-a957-81eae8693b25',
+  '日常': '389dc059-8eb7-81fd-8289-f6203559dcb5',
 };
 
 // 各領域對應的子類型設定
@@ -805,6 +818,14 @@ const AREA_SUBTYPES = {
   ],
   '健康': [
     { key: 'health',        label: '純記時',   db: null,         isLearning: false },
+  ],
+  '日常': [
+    { key: 'commute',       label: '通勤', db: null,             isLearning: false },
+    { key: 'meal',          label: '吃飯', db: null,             isLearning: false },
+    { key: 'chore',         label: '家務', db: null,             isLearning: false },
+    { key: 'rest',          label: '休息', db: null,             isLearning: false },
+    { key: 'misc',          label: '雜事', db: null,             isLearning: false },
+    { key: 'distraction',   label: '分心', db: null,             isLearning: false },
   ],
   '學習': [
     { key: 'book',          label: '書籍', db: DB_BOOKS,         titleField: 'Title', isLearning: true },
@@ -1435,6 +1456,7 @@ async function loadLogsForDate(dateStr) {
 // Load today sleep
 async function loadSleepForDate(dateStr) {
   const today = dateStr || getTaipeiToday();
+  state.sleepLog = null; // 切換日期時先清掉舊的，避免殘留
   let row = null;
   try {
     // 先用原本的精準查詢
@@ -1468,6 +1490,7 @@ async function loadSleepForDate(dateStr) {
   }
   state.sleepLog = { bedtime, wakeup, minutes };
   renderGrid();
+  updateTotal(); // 睡眠會影響覆蓋率分母，載入後重算
 }
 
 function renderLogs() {
@@ -1567,7 +1590,7 @@ function renderGrid() {
     // 先把 segments 按開始時間排序
     const slotStartMin = cell.slot * 30;
     let filledPct = 0;
-    const bars = cell.segments.map(seg => {
+    const bars = cell.segments.map((seg, idx) => {
       let startMin2;
       if (seg.type === 'health') {
         const sleepStart = toTaipeiMin(state.sleepLog.bedtime);
@@ -1583,6 +1606,8 @@ function renderGrid() {
       const pct = (seg.minutes / 30 * 100).toFixed(1);
       const type = seg.type === 'health' ? 'health'
         : (seg.log.isLearning || seg.log.area === '學習' || seg.log.area === '個人成長') ? 'learning'
+        : seg.log.name === '分心' ? 'distraction'
+        : seg.log.area === '日常' ? 'daily'
         : seg.log.area === '樂趣' ? 'entertainment'
         : seg.log.area === '信仰' ? 'faith'
         : seg.log.area === '服事' ? 'ministry'
@@ -1591,8 +1616,10 @@ function renderGrid() {
         : 'other';
       const gap = offsetPct - filledPct;
       filledPct = parseFloat(offsetPct) + parseFloat(pct);
+      // 同格相鄰色塊之間加細分隔線（含同色），最後一段不加
+      const sep = idx < cell.segments.length - 1 ? 'border-right:1.5px solid var(--bg);' : '';
       return (gap > 0 ? `<div style="width:${gap}%;height:100%;flex-shrink:0;"></div>` : '') +
-             `<div class="hm-bar hm-bar-${type}" style="width:${pct}%"></div>`;
+             `<div class="hm-bar hm-bar-${type}" style="width:${pct}%;${sep}"></div>`;
     }).join('');
 
     return `<div class="hm-cell" onclick="showCellDetail(event, ${cell.slot})">
@@ -1673,6 +1700,8 @@ function showCellDetail(e, slot) {
     popup.innerHTML = `<div class="cell-popup-time">${timeStr}</div>` +
       segments.map(seg => {
         const type = (seg.log.isLearning || seg.log.area === '學習' || seg.log.area === '個人成長') ? 'learning'
+          : seg.log.name === '分心' ? 'distraction'
+          : seg.log.area === '日常' ? 'daily'
           : seg.log.area === '樂趣' ? 'entertainment'
           : seg.log.area === '信仰' ? 'faith'
         : seg.log.area === '服事' ? 'ministry'
@@ -1680,6 +1709,8 @@ function showCellDetail(e, slot) {
           : seg.log.area === '家庭' ? 'family'
           : seg.log.area === '健康' ? 'health' : 'other';
         const color = type === 'learning' ? 'var(--accent)'
+          : type === 'distraction' ? 'var(--distraction)'
+          : type === 'daily' ? 'var(--daily)'
           : type === 'entertainment' ? 'var(--entertainment)'
           : type === 'faith'   ? 'var(--faith)'
           : type === 'ministry' ? 'var(--ministry)'
@@ -1722,6 +1753,44 @@ function updateTotal() {
   const total = state.todayLogs.reduce((s, l) => s + l.minutes, 0);
   document.getElementById('total-display').textContent =
     total ? formatMin(total) : '—';
+  updateCoverage(total);
+}
+
+// 計算「清醒時間覆蓋率」：已記錄 ÷（已過時間 − 睡眠）
+function updateCoverage(totalRecorded) {
+  const el = document.getElementById('coverage-display');
+  if (!el) return;
+  const isToday = state.viewDate === getTaipeiToday();
+
+  // 分母上限：今天用「現在」分鐘數，過去用整天 1440
+  let elapsed;
+  if (isToday) {
+    const tNow = new Date(Date.now() + 8 * 3600 * 1000);
+    elapsed = tNow.getUTCHours() * 60 + tNow.getUTCMinutes();
+  } else {
+    elapsed = 1440;
+  }
+
+  // 睡眠分鐘數（落在 0:00～elapsed 之間的部分），沒資料就 0
+  let sleepMin = 0;
+  if (state.sleepLog && state.sleepLog.bedtime && state.sleepLog.wakeup) {
+    const toMin = iso => {
+      const d = new Date(new Date(iso).getTime() + 8 * 3600 * 1000);
+      return d.getUTCHours() * 60 + d.getUTCMinutes();
+    };
+    const s0 = toMin(state.sleepLog.bedtime);
+    const s1 = toMin(state.sleepLog.wakeup);
+    // 跨午夜 → 今天只算 0～起床；同日 → 就寢～起床
+    const from = (s1 > s0) ? s0 : 0;
+    const to = s1;
+    sleepMin = Math.max(0, Math.min(to, elapsed) - Math.max(from, 0));
+  }
+
+  const denom = elapsed - sleepMin;
+  if (denom <= 0) { el.textContent = '—'; return; }
+  let pct = Math.round(totalRecorded / denom * 100);
+  if (pct > 100) pct = 100;
+  el.textContent = `${pct}% 時間被記錄`;
 }
 
 // Helpers
