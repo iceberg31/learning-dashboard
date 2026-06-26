@@ -635,6 +635,18 @@ body {
   25% { transform: translateX(-8px); }
   75% { transform: translateX(8px); }
 }
+
+/* Time editor modal */
+.te-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:299; display:none; backdrop-filter:blur(2px); }
+.te-overlay.show { display:block; }
+.te-modal { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(0.95); width:90%; max-width:340px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:24px; z-index:300; opacity:0; pointer-events:none; transition:all .2s cubic-bezier(0.32,0.72,0,1); }
+.te-modal.open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+.te-title { font-size:15px; font-weight:500; margin-bottom:18px; color:var(--text); }
+.te-field { margin-bottom:14px; }
+.te-field label { display:block; font-size:10px; color:var(--text-dim); margin-bottom:6px; font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:0.1em; }
+.te-field input { width:100%; padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; color:var(--text); font-size:16px; font-family:'DM Mono',monospace; outline:none; }
+.te-field input:focus { border-color:var(--accent-dim); }
+.te-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
 </style>
 </head>
 <body>
@@ -729,6 +741,18 @@ body {
 
 <!-- Status bar -->
 <div class="status-bar" id="status-bar"></div>
+
+<!-- Time editor -->
+<div class="te-overlay" id="time-editor-overlay" onclick="closeTimeEditor()"></div>
+<div class="te-modal" id="time-editor">
+  <div class="te-title" id="te-name">編輯時間</div>
+  <div class="te-field"><label>開始</label><input type="time" id="te-start"></div>
+  <div class="te-field"><label>結束</label><input type="time" id="te-end"></div>
+  <div class="te-actions">
+    <button class="btn btn-start" onclick="saveTimeEditor()">儲存</button>
+    <button class="btn btn-cancel" onclick="closeTimeEditor()">取消</button>
+  </div>
+</div>
 
 <script>
 // 密碼保護
@@ -1443,7 +1467,7 @@ async function loadLogsForDate(dateStr) {
       const books = (props['書籍'] && props['書籍'].relation) || [];
       const articles = (props['網路文章與報導'] && props['網路文章與報導'].relation) || [];
       const isLearning = !!(books.length || articles.length);
-      return { name: resource, area, areaColor: AREA_COLORS[area] || '#888', minutes: min, startTime: startISO, endTime: endISO, isLearning };
+      return { id: p.id, name: resource, area, areaColor: AREA_COLORS[area] || '#888', minutes: min, startTime: startISO, endTime: endISO, isLearning };
     });
     renderLogs();
     updateTotal();
@@ -1499,15 +1523,19 @@ function renderLogs() {
     list.innerHTML = '<div class="empty">今天還沒有記錄<br>按上方開始按鈕來記錄第一筆</div>';
     return;
   }
-  list.innerHTML = state.todayLogs.map(log => `
-    <div class="log-item">
+  list.innerHTML = state.todayLogs.map((log, i) => {
+    const range = (log.startTime && log.endTime)
+      ? `${hhmm(log.startTime)}–${hhmm(log.endTime)}`
+      : (log.startTime ? `${hhmm(log.startTime)}– 進行中` : '');
+    return `
+    <div class="log-item" onclick="editLog(${i})" style="cursor:pointer;">
       <div class="log-info">
         <div class="log-name">${log.name}</div>
-        <div class="log-area">${log.area}</div>
+        <div class="log-area">${log.area}${range ? ' · ' + range : ''}</div>
       </div>
-      <div class="log-time">${formatMin(log.minutes)}</div>
-    </div>
-  `).join('');
+      <div class="log-time">${formatMin(log.minutes)} ✎</div>
+    </div>`;
+  }).join('');
 }
 
 
@@ -1718,12 +1746,16 @@ function showCellDetail(e, slot) {
           : type === 'family'  ? 'var(--family)'
           : type === 'health'  ? 'var(--health)'
           : 'var(--text-dim)';
+        const editBtn = seg.log.id
+          ? `<button onclick="event.stopPropagation(); cellPopupEdit('${seg.log.id}', \`${(seg.log.name||'').replace(/\`/g,"'")}\`, '${seg.log.startTime||''}', '${seg.log.endTime||''}')" style="margin-left:auto;background:var(--surface);border:1px solid var(--border);color:var(--accent-dim);border-radius:8px;padding:3px 9px;font-size:11px;cursor:pointer;flex-shrink:0;">編輯</button>`
+          : '';
         return `<div class="cell-popup-row">
           <div class="cell-popup-dot" style="background:${color}"></div>
-          <div>
+          <div style="flex:1;min-width:0;">
             <div class="cell-popup-name">${seg.log.name || seg.log.area}</div>
             <div class="cell-popup-meta">${seg.log.area} · ${seg.minutes}m</div>
           </div>
+          ${editBtn}
         </div>`;
       }).join('');
   }
@@ -1747,6 +1779,71 @@ function showCellDetail(e, slot) {
       if (activeCellPopup) { activeCellPopup.remove(); activeCellPopup = null; }
     }, { once: true });
   }, 0);
+}
+
+// ===== 時間編輯器 =====
+function hhmm(iso) {
+  if (!iso) return '';
+  const d = new Date(new Date(iso).getTime() + 8 * 3600 * 1000);
+  return String(d.getUTCHours()).padStart(2,'0') + ':' + String(d.getUTCMinutes()).padStart(2,'0');
+}
+
+let editingPageId = null;
+function openTimeEditor(pageId, name, startISO, endISO) {
+  editingPageId = pageId;
+  document.getElementById('te-name').textContent = name || '編輯時間';
+  document.getElementById('te-start').value = hhmm(startISO);
+  document.getElementById('te-end').value = hhmm(endISO);
+  document.getElementById('time-editor').classList.add('open');
+  document.getElementById('time-editor-overlay').classList.add('show');
+}
+function closeTimeEditor() {
+  document.getElementById('time-editor').classList.remove('open');
+  document.getElementById('time-editor-overlay').classList.remove('show');
+  editingPageId = null;
+}
+function editLog(i) {
+  const l = state.todayLogs[i];
+  if (!l || !l.id) return;
+  openTimeEditor(l.id, l.name, l.startTime, l.endTime);
+}
+function cellPopupEdit(id, name, s, e) {
+  if (activeCellPopup) { activeCellPopup.remove(); activeCellPopup = null; }
+  openTimeEditor(id, name, s || null, e || null);
+}
+async function saveTimeEditor() {
+  if (!editingPageId) return;
+  const sv = document.getElementById('te-start').value;
+  const ev = document.getElementById('te-end').value;
+  if (!sv || !ev) { showStatus('請填開始與結束時間', 'error'); return; }
+  // 以目前檢視日期為基準組台灣時區 ISO；結束早於開始視為跨午夜 +1 天
+  const base = state.viewDate;
+  const nextDay = () => {
+    const dt = new Date(base + 'T00:00:00+08:00');
+    dt.setDate(dt.getDate() + 1);
+    return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+  };
+  const crossMidnight = ev < sv;
+  const startISO = `${base}T${sv}:00.000+08:00`;
+  const endISO = `${crossMidnight ? nextDay() : base}T${ev}:00.000+08:00`;
+  const minutes = Math.round((new Date(endISO) - new Date(startISO)) / 60000);
+  if (minutes <= 0) { showStatus('結束時間需晚於開始', 'error'); return; }
+  showStatus('更新中...', '');
+  try {
+    await notionFetch('PATCH', '/pages/' + editingPageId, {
+      properties: {
+        '開始時間': { date: { start: startISO, end: null } },
+        '結束時間': { date: { start: endISO, end: null } },
+        '時長（分鐘）': { number: minutes }
+      }
+    });
+    showStatus('✓ 已更新時間', 'success');
+    closeTimeEditor();
+    loadLogsForDate(state.viewDate);
+    loadSleepForDate(state.viewDate);
+  } catch(e) {
+    showStatus('更新失敗：' + e.message, 'error');
+  }
 }
 
 function updateTotal() {
