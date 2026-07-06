@@ -1618,6 +1618,12 @@ function renderGrid() {
     // 先把 segments 按開始時間排序
     const slotStartMin = cell.slot * 30;
     let filledPct = 0;
+    // 先依實際開始時間由早到晚排序，避免同格多段順序顛倒導致位移與分隔線錯位
+    cell.segments.sort((a, b) => {
+      const sa = a.type === 'health' ? 0 : toTaipeiMin(a.log.startTime);
+      const sb = b.type === 'health' ? 0 : toTaipeiMin(b.log.startTime);
+      return sa - sb;
+    });
     const bars = cell.segments.map((seg, idx) => {
       let startMin2;
       if (seg.type === 'health') {
